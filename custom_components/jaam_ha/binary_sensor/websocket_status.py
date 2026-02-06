@@ -1,4 +1,4 @@
-"""Connectivity binary sensor for jaam_ha."""
+"""WebSocket status binary sensor for jaam_ha."""
 
 from __future__ import annotations
 
@@ -17,18 +17,17 @@ if TYPE_CHECKING:
 
 ENTITY_DESCRIPTIONS = (
     BinarySensorEntityDescription(
-        key="api_connectivity",
-        translation_key="api_connectivity",
+        key="websocket_status",
+        translation_key="websocket_status",
         device_class=BinarySensorDeviceClass.CONNECTIVITY,
         entity_category=EntityCategory.DIAGNOSTIC,
-        icon="mdi:api",
         has_entity_name=True,
     ),
 )
 
 
-class JaamHAConnectivitySensor(BinarySensorEntity, JaamHAEntity):
-    """Connectivity sensor for jaam_ha."""
+class JaamHAWebSocketStatusSensor(BinarySensorEntity, JaamHAEntity):
+    """WebSocket status binary sensor for jaam_ha."""
 
     def __init__(
         self,
@@ -40,14 +39,23 @@ class JaamHAConnectivitySensor(BinarySensorEntity, JaamHAEntity):
 
     @property
     def is_on(self) -> bool:
-        """Return true if the API connection is established."""
-        # Connection is considered established if coordinator has valid data
-        return self.coordinator.last_update_success
+        """Return true if WebSocket connection is active."""
+        websocket_status = self.coordinator.data.get("websocket_status")
+        if websocket_status is not None:
+            return bool(websocket_status)
+        return False
 
     @property
-    def extra_state_attributes(self) -> dict[str, str | None]:
+    def icon(self) -> str:
+        """Return the icon based on connection status."""
+        if self.is_on:
+            return "mdi:lan-connect"
+        return "mdi:lan-disconnect"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, int | None]:
         """Return additional state attributes."""
+        websocket_uptime = self.coordinator.data.get("websocket_uptime")
         return {
-            "update_interval": str(self.coordinator.update_interval),
-            "api_endpoint": "JSONPlaceholder (Demo)",
+            "uptime": websocket_uptime,
         }

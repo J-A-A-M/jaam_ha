@@ -263,9 +263,15 @@ class JaamHAApiClient:
             "connected": data.get("connected", False),
             "chip_id": data.get("chip_id"),
             "fw_version": data.get("fw_version"),
-            "map_mode": data.get("map_mode"),
             "map_mode_id": data.get("map_mode_id"),
             "home_region": data.get("home_region"),
+            "home_alert_bit": data.get("home_alert_bit"),
+            "used_memory": data.get("used_memory"),
+            "uptime": data.get("uptime"),
+            "wifi_uptime": data.get("wifi_uptime"),
+            "wifi_signal": data.get("wifi_signal"),
+            "websocket_status": data.get("websocket_status"),
+            "websocket_uptime": data.get("websocket_uptime"),
             "lamp_color": lamp_data.get("color"),
             "lamp_brightness": lamp_data.get("brightness"),
         }
@@ -414,11 +420,9 @@ class JaamHAApiClient:
             # Update local state based on message type
             if msg_type == "map_mode_change":
                 if self._data:
-                    self._data["map_mode"] = data.get("map_mode")
                     self._data["map_mode_id"] = data.get("map_mode_id")
                     LOGGER.debug(
-                        "Updated map_mode: %s (id: %s)",
-                        self._data.get("map_mode"),
+                        "Updated map_mode_id: %s",
                         self._data.get("map_mode_id"),
                     )
 
@@ -437,6 +441,26 @@ class JaamHAApiClient:
                 if self._data:
                     self._data["home_region"] = data.get("home_region")
                     LOGGER.debug("Updated home_region: %s", self._data.get("home_region"))
+
+            elif msg_type == "home_alert_change":
+                if self._data:
+                    self._data["home_alert_bit"] = data.get("home_alert_bit")
+                    LOGGER.debug("Updated home_alert_bit: %s", self._data.get("home_alert_bit"))
+
+            elif msg_type == "system_info":
+                if self._data:
+                    self._data["used_memory"] = data.get("used_memory")
+                    self._data["uptime"] = data.get("uptime")
+                    self._data["wifi_uptime"] = data.get("wifi_uptime")
+                    self._data["wifi_signal"] = data.get("wifi_signal")
+                    self._data["websocket_status"] = data.get("websocket_status")
+                    self._data["websocket_uptime"] = data.get("websocket_uptime")
+                    LOGGER.debug(
+                        "Updated system info - memory: %s, uptime: %s, wifi_signal: %s",
+                        self._data.get("used_memory"),
+                        self._data.get("uptime"),
+                        self._data.get("wifi_signal"),
+                    )
 
             # Notify coordinator of data update
             if self._update_callback and self._data:
