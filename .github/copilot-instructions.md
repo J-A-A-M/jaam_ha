@@ -12,9 +12,9 @@ This file provides specific guidance for GitHub Copilot when generating code for
 
 This integration:
 
-- **Domain:** `ha_integration_domain`
-- **Title:** Integration Blueprint
-- **Class prefix:** `IntegrationBlueprint`
+- **Domain:** `jaam_ha`
+- **Title:** JAAM Home Assistant Integration
+- **Class prefix:** `JaamHA`
 
 Use these exact identifiers throughout the codebase. Never hardcode different values.
 
@@ -42,7 +42,7 @@ Generate code that passes these checks on first run.
 
 - `coordinator/` - DataUpdateCoordinator (base.py + data_processing.py + error_handling.py + listeners.py)
 - `api/` - External API client with async aiohttp
-- `entity/` - Base entity class (`IntegrationBlueprintEntity`)
+- `entity/` - Base entity class (`JaamHAEntity`)
 - `entity_utils/` - Entity-specific helpers (device_info, state formatting)
 - `config_flow_handler/` - Config flow with schemas/ and validators/ subdirs
   - `validators/*.py` - Config flow validation functions
@@ -59,7 +59,7 @@ Generate code that passes these checks on first run.
 
 **Key Patterns:**
 
-- All entities inherit: `(PlatformEntity, IntegrationBlueprintEntity)` - order matters for MRO
+- All entities inherit: `(PlatformEntity, JaamHAEntity)` - order matters for MRO
 - Unique ID format: `{entry_id}_{description.key}` (set in base entity)
 - Services registered in `async_setup()`, NOT `async_setup_entry()` (Quality Scale requirement)
 - Config entry data accessed via `entry.runtime_data.client` and `entry.runtime_data.coordinator`
@@ -138,7 +138,7 @@ pkill -f "hass --config" || true && pkill -f "debugpy.*5678" || true && ./script
 
 - Live: Terminal where `./script/develop` runs
 - File: `config/home-assistant.log` (most recent), `config/home-assistant.log.1` (previous)
-- Adjust log level: `custom_components.ha_integration_domain: debug` in `config/configuration.yaml`
+- Adjust log level: `custom_components.jaam_ha: debug` in `config/configuration.yaml`
 
 ## Working With the Developer
 

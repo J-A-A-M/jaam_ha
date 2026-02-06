@@ -132,9 +132,9 @@ Break down into logical phases (typically 3-5):
 
 **Integration-specific considerations:**
 
-- Domain: `ha_integration_domain`
-- Title: Integration Blueprint
-- Class prefix: `IntegrationBlueprint`
+- Domain: `jaam_ha`
+- Title: JAAM Home Assistant Integration
+- Class prefix: `JaamHA`
 - Follow patterns in `AGENTS.md` and path-specific `.instructions.md`
 
 ## Example Phase Structure
@@ -144,8 +144,8 @@ Break down into logical phases (typically 3-5):
 
 **Files to modify:**
 
-- `custom_components/ha_integration_domain/sensor/__init__.py`
-- `custom_components/ha_integration_domain/sensor/new_sensor.py` (create)
+- `custom_components/jaam_ha/sensor/__init__.py`
+- `custom_components/jaam_ha/sensor/new_sensor.py` (create)
 
 **Changes:**
 

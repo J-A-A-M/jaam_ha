@@ -20,8 +20,8 @@ If not provided, ask for:
 
 **Entity Implementation:**
 
-- Create new sensor file in `custom_components/ha_integration_domain/sensor/`
-- Inherit from `IntegrationBlueprintEntity` and `SensorEntity`
+- Create new sensor file in `custom_components/jaam_ha/sensor/`
+- Inherit from `JaamHAEntity` and `SensorEntity`
 - Use `SensorEntityDescription` for static metadata
 - Implement `native_value` property to return sensor value from coordinator data
 - Add proper type hints for all methods and properties
@@ -48,7 +48,7 @@ If not provided, ask for:
 **Entity Template:**
 
 ```python
-"""[Sensor description] for Integration Blueprint."""
+"""[Sensor description] for JAAM Home Assistant Integration."""
 
 from __future__ import annotations
 
@@ -62,17 +62,17 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import [UNIT_CONSTANT]  # e.g., PERCENTAGE, UnitOfTemperature
 from homeassistant.core import callback
 
-from ..coordinator import IntegrationBlueprintDataUpdateCoordinator
-from ..entity import IntegrationBlueprintEntity
+from ..coordinator import JaamHADataUpdateCoordinator
+from ..entity import JaamHAEntity
 
 
-class IntegrationBlueprint[SensorName]Sensor(
-    IntegrationBlueprintEntity,
+class JaamHA[SensorName]Sensor(
+    JaamHAEntity,
     SensorEntity,
 ):
     """Sensor for [description]."""
 
-    # MANDATORY for new integrations (2025)
+    # MANDATORY for new integrations (2026)
     _attr_has_entity_name = True
 
     entity_description = SensorEntityDescription(
@@ -85,7 +85,7 @@ class IntegrationBlueprint[SensorName]Sensor(
 
     def __init__(
         self,
-        coordinator: IntegrationBlueprintDataUpdateCoordinator,
+        coordinator: JaamHADataUpdateCoordinator,
         entry: ConfigEntry,
     ) -> None:
         """Initialize the sensor."""
@@ -151,9 +151,9 @@ async def async_setup_entry(
 
 **Related Files:**
 
-- Entity: `custom_components/ha_integration_domain/sensor/[sensor_name].py`
-- Platform: `custom_components/ha_integration_domain/sensor/__init__.py`
-- Translations: `custom_components/ha_integration_domain/translations/*.json`
+- Entity: `custom_components/jaam_ha/sensor/[sensor_name].py`
+- Platform: `custom_components/jaam_ha/sensor/__init__.py`
+- Translations: `custom_components/jaam_ha/translations/*.json`
 - Documentation: Reference [#file:docs/development/ARCHITECTURE.md]
 
 **DO NOT create tests unless explicitly requested.**
