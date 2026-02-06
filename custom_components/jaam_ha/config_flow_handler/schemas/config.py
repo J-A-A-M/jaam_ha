@@ -19,7 +19,7 @@ from typing import Any
 
 import voluptuous as vol
 
-from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
+from custom_components.jaam_ha.const import CONF_HOST, CONF_PORT, DEFAULT_PORT
 from homeassistant.helpers import selector
 
 
@@ -31,35 +31,41 @@ def get_user_schema(defaults: Mapping[str, Any] | None = None) -> vol.Schema:
         defaults: Optional dictionary of default values to pre-populate the form.
 
     Returns:
-        Voluptuous schema for user credentials input.
+        Voluptuous schema for device connection input.
 
     """
     defaults = defaults or {}
     return vol.Schema(
         {
             vol.Required(
-                CONF_USERNAME,
-                default=defaults.get(CONF_USERNAME, vol.UNDEFINED),
+                CONF_HOST,
+                default=defaults.get(CONF_HOST, vol.UNDEFINED),
             ): selector.TextSelector(
                 selector.TextSelectorConfig(
                     type=selector.TextSelectorType.TEXT,
                 ),
             ),
-            vol.Required(CONF_PASSWORD): selector.TextSelector(
-                selector.TextSelectorConfig(
-                    type=selector.TextSelectorType.PASSWORD,
+            vol.Optional(
+                CONF_PORT,
+                default=defaults.get(CONF_PORT, DEFAULT_PORT),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    mode=selector.NumberSelectorMode.BOX,
+                    min=1,
+                    max=65535,
                 ),
             ),
         },
     )
 
 
-def get_reconfigure_schema(username: str) -> vol.Schema:
+def get_reconfigure_schema(host: str, port: int = DEFAULT_PORT) -> vol.Schema:
     """
     Get schema for reconfigure step.
 
     Args:
-        username: Current username to pre-fill in the form.
+        host: Current host to pre-fill in the form.
+        port: Current port to pre-fill in the form.
 
     Returns:
         Voluptuous schema for reconfiguration.
@@ -68,30 +74,34 @@ def get_reconfigure_schema(username: str) -> vol.Schema:
     return vol.Schema(
         {
             vol.Required(
-                CONF_USERNAME,
-                default=username,
+                CONF_HOST,
+                default=host,
             ): selector.TextSelector(
                 selector.TextSelectorConfig(
                     type=selector.TextSelectorType.TEXT,
                 ),
             ),
-            vol.Required(
-                CONF_PASSWORD,
-            ): selector.TextSelector(
-                selector.TextSelectorConfig(
-                    type=selector.TextSelectorType.PASSWORD,
+            vol.Optional(
+                CONF_PORT,
+                default=port,
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    mode=selector.NumberSelectorMode.BOX,
+                    min=1,
+                    max=65535,
                 ),
             ),
         },
     )
 
 
-def get_reauth_schema(username: str) -> vol.Schema:
+def get_reauth_schema(host: str, port: int = DEFAULT_PORT) -> vol.Schema:
     """
     Get schema for reauthentication step.
 
     Args:
-        username: Current username to pre-fill in the form.
+        host: Current host to pre-fill in the form.
+        port: Current port to pre-fill in the form.
 
     Returns:
         Voluptuous schema for reauthentication.
@@ -100,18 +110,21 @@ def get_reauth_schema(username: str) -> vol.Schema:
     return vol.Schema(
         {
             vol.Required(
-                CONF_USERNAME,
-                default=username,
+                CONF_HOST,
+                default=host,
             ): selector.TextSelector(
                 selector.TextSelectorConfig(
                     type=selector.TextSelectorType.TEXT,
                 ),
             ),
-            vol.Required(
-                CONF_PASSWORD,
-            ): selector.TextSelector(
-                selector.TextSelectorConfig(
-                    type=selector.TextSelectorType.PASSWORD,
+            vol.Optional(
+                CONF_PORT,
+                default=port,
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    mode=selector.NumberSelectorMode.BOX,
+                    min=1,
+                    max=65535,
                 ),
             ),
         },

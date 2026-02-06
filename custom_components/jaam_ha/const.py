@@ -6,11 +6,12 @@ LOGGER: Logger = getLogger(__package__)
 
 # Integration metadata
 DOMAIN = "jaam_ha"
-ATTRIBUTION = "Data provided by http://jsonplaceholder.typicode.com/"
+ATTRIBUTION = "Data provided by JAAM device"
 
 # Platform parallel updates - applied to all platforms
 PARALLEL_UPDATES = 1
 
-# Default configuration values
-DEFAULT_UPDATE_INTERVAL_HOURS = 1
-DEFAULT_ENABLE_DEBUGGING = False
+# Configuration keys
+CONF_HOST = "host"
+CONF_PORT = "port"
+DEFAULT_PORT = 81

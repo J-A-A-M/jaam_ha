@@ -21,13 +21,13 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import TYPE_CHECKING
 
-from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, Platform
+from custom_components.jaam_ha.const import CONF_HOST, CONF_PORT, DEFAULT_PORT, DOMAIN, LOGGER
+from homeassistant.const import Platform
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import homeassistant.helpers.config_validation as cv
 from homeassistant.loader import async_get_loaded_integration
 
 from .api import JaamHAApiClient
-from .const import DOMAIN, LOGGER
 from .coordinator import JaamHADataUpdateCoordinator
 from .data import JaamHAData
 from .service_actions import async_setup_services
@@ -38,13 +38,8 @@ if TYPE_CHECKING:
     from .data import JaamHAConfigEntry
 
 PLATFORMS: list[Platform] = [
-    Platform.BINARY_SENSOR,
-    Platform.BUTTON,
-    Platform.FAN,
-    Platform.NUMBER,
+    Platform.LIGHT,
     Platform.SELECT,
-    Platform.SENSOR,
-    Platform.SWITCH,
 ]
 
 # This integration is configured via config entries only
@@ -114,9 +109,9 @@ async def async_setup_entry(
     """
     # Initialize client first
     client = JaamHAApiClient(
-        username=entry.data[CONF_USERNAME],  # From config flow setup
-        password=entry.data[CONF_PASSWORD],  # From config flow setup
+        host=entry.data[CONF_HOST],
         session=async_get_clientsession(hass),
+        port=entry.data.get(CONF_PORT, DEFAULT_PORT),
     )
 
     # Initialize coordinator with config_entry
@@ -155,7 +150,7 @@ async def async_unload_entry(
     This is called when the integration is being removed or reloaded.
     It ensures proper cleanup of:
     - All platform entities
-    - Registered services
+    - WebSocket connection
     - Update listeners
 
     Args:
@@ -168,6 +163,9 @@ async def async_unload_entry(
     For more information:
     https://developers.home-assistant.io/docs/config_entries_index/#unloading-entries
     """
+    # Shutdown coordinator (closes WebSocket connection)
+    await entry.runtime_data.coordinator.async_shutdown()
+
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 

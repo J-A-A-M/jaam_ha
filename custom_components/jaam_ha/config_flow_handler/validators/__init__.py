@@ -7,11 +7,11 @@ as the integration grows.
 
 Package structure:
 -----------------
-- credentials.py: Credential validation and authentication
+- credentials.py: Connection validation
 - sanitizers.py: Input sanitization and normalization
 
 When validators grow (>300 lines per file), split further:
-- credentials/basic.py, credentials/oauth.py, credentials/api_key.py
+- connection/websocket.py, connection/http.py
 - sanitizers/text.py, sanitizers/network.py, sanitizers/identifiers.py
 - discovery/bluetooth.py, discovery/zeroconf.py, discovery/ssdp.py
 - devices/validation.py, devices/discovery.py
@@ -21,11 +21,11 @@ All validators are re-exported from this __init__.py for convenient imports.
 
 from __future__ import annotations
 
-from custom_components.jaam_ha.config_flow_handler.validators.credentials import validate_credentials
-from custom_components.jaam_ha.config_flow_handler.validators.sanitizers import sanitize_username
+from custom_components.jaam_ha.config_flow_handler.validators.credentials import validate_connection
+from custom_components.jaam_ha.config_flow_handler.validators.sanitizers import sanitize_host
 
 # Re-export all validators for convenient imports
 __all__ = [
-    "sanitize_username",
-    "validate_credentials",
+    "sanitize_host",
+    "validate_connection",
 ]

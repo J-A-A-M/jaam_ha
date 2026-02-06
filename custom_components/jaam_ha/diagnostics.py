@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
+from custom_components.jaam_ha.const import CONF_HOST, CONF_PORT
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.redact import async_redact_data
 
@@ -19,12 +19,10 @@ if TYPE_CHECKING:
 
 # Fields to redact from diagnostics - CRITICAL for security!
 TO_REDACT = {
-    CONF_PASSWORD,
-    CONF_USERNAME,
-    "username",
-    "password",
-    "api_key",
-    "token",
+    CONF_HOST,
+    "host",
+    "ip_address",
+    "chip_id",
 }
 
 
@@ -76,8 +74,9 @@ async def async_get_config_entry_diagnostics(
 
     # API client information (no sensitive data)
     api_info = {
-        "base_endpoint": "https://jsonplaceholder.typicode.com",
-        "has_credentials": bool(client._username),  # noqa: SLF001
+        "protocol": "WebSocket",
+        "port": entry.data.get(CONF_PORT),
+        "connected": client.connected if hasattr(client, "connected") else None,
     }
 
     # Integration information
