@@ -1,0 +1,13 @@
+{
+  "domain": "jaam_ha",
+  "name": "JAAM Home Assistant Integration",
+  "codeowners": [
+    "@J-A-A-M"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/J-A-A-M/jaam_ha",
+  "integration_type": "hub",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/J-A-A-M/jaam_ha/issues",
+  "version": "0.1.0"
+}

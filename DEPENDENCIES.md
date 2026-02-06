@@ -8,7 +8,7 @@ This custom integration uses multiple requirements files to separate different t
 
 **Purpose:** Python packages needed by the integration at runtime
 **Installed by:** Home Assistant when loading the integration
-**Also defined in:** `custom_components/ha_integration_domain/manifest.json`
+**Also defined in:** `custom_components/jaam_ha/manifest.json`
 
 **Note:** This file is typically empty if this integration has no additional runtime dependencies beyond Home Assistant core.
 
@@ -96,7 +96,7 @@ The `script/setup/bootstrap` automatically installs dependencies from multiple s
 
 ### From Home Assistant Core
 
-**Version:** Configured via `HA_VERSION` in `.devcontainer/devcontainer.json` (currently `2025.12.3`)
+**Version:** Configured via `HA_VERSION` in `.devcontainer/devcontainer.json` (currently `2026.12.3`)
 
 1. **Runtime dependencies** (`requirements_all.txt`)
    - All packages that Home Assistant integrations might need
@@ -131,7 +131,7 @@ This approach means this project only needs to maintain a minimal set of depende
 ```json
 {
   "name": "Integration Name",
-  "homeassistant": "2025.11.0",
+  "homeassistant": "2026.11.0",
   "hacs": "2.0.5"
 }
 ```

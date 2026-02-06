@@ -18,7 +18,7 @@ Each decision is documented with:
 
 ### Use DataUpdateCoordinator for All Data Fetching
 
-**Date:** 2025-11-29 (Template initialization)
+**Date:** 2026-11-29 (Template initialization)
 
 **Context:** The integration needs to fetch data from an external API and share it with multiple entities. Home Assistant provides several patterns for this.
 
@@ -43,7 +43,7 @@ Each decision is documented with:
 
 ### Separate API Client from Coordinator
 
-**Date:** 2025-11-29 (Template initialization)
+**Date:** 2026-11-29 (Template initialization)
 
 **Context:** The coordinator needs to fetch data, but business logic should be separated from data transport.
 
@@ -66,7 +66,7 @@ Each decision is documented with:
 
 ### Platform-Specific Directories
 
-**Date:** 2025-11-29 (Template initialization)
+**Date:** 2026-11-29 (Template initialization)
 
 **Context:** Integration supports multiple platforms (sensor, binary_sensor, switch, etc.).
 
@@ -89,7 +89,7 @@ Each decision is documented with:
 
 ### EntityDescription for Static Metadata
 
-**Date:** 2025-11-29 (Template initialization)
+**Date:** 2026-11-29 (Template initialization)
 
 **Context:** Entities have static metadata (name, icon, device class) that doesn't change.
 
