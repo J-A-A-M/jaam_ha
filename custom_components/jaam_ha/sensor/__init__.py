@@ -7,8 +7,9 @@ from typing import TYPE_CHECKING
 from custom_components.jaam_ha.const import PARALLEL_UPDATES as PARALLEL_UPDATES
 from homeassistant.components.sensor import SensorEntityDescription
 
-from .air_quality import ENTITY_DESCRIPTIONS as AIR_QUALITY_DESCRIPTIONS, JaamHAAirQualitySensor
-from .diagnostic import ENTITY_DESCRIPTIONS as DIAGNOSTIC_DESCRIPTIONS, JaamHADiagnosticSensor
+from .home_alert import ENTITY_DESCRIPTIONS as HOME_ALERT_DESCRIPTIONS, JaamHAHomeAlertSensor
+from .home_district import ENTITY_DESCRIPTIONS as HOME_DISTRICT_DESCRIPTIONS, JaamHAHomeDistrictSensor
+from .system_info import ENTITY_DESCRIPTIONS as SYSTEM_INFO_DESCRIPTIONS, JaamHASystemInfoSensor
 
 if TYPE_CHECKING:
     from custom_components.jaam_ha.data import JaamHAConfigEntry
@@ -17,8 +18,9 @@ if TYPE_CHECKING:
 
 # Combine all entity descriptions from different modules
 ENTITY_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
-    *AIR_QUALITY_DESCRIPTIONS,
-    *DIAGNOSTIC_DESCRIPTIONS,
+    *HOME_ALERT_DESCRIPTIONS,
+    *HOME_DISTRICT_DESCRIPTIONS,
+    *SYSTEM_INFO_DESCRIPTIONS,
 )
 
 
@@ -28,19 +30,27 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the sensor platform."""
-    # Add air quality sensors
+    # Add home alert sensor
     async_add_entities(
-        JaamHAAirQualitySensor(
+        JaamHAHomeAlertSensor(
             coordinator=entry.runtime_data.coordinator,
             entity_description=entity_description,
         )
-        for entity_description in AIR_QUALITY_DESCRIPTIONS
+        for entity_description in HOME_ALERT_DESCRIPTIONS
     )
-    # Add diagnostic sensors
+    # Add home district sensor
     async_add_entities(
-        JaamHADiagnosticSensor(
+        JaamHAHomeDistrictSensor(
             coordinator=entry.runtime_data.coordinator,
             entity_description=entity_description,
         )
-        for entity_description in DIAGNOSTIC_DESCRIPTIONS
+        for entity_description in HOME_DISTRICT_DESCRIPTIONS
+    )
+    # Add system info sensors
+    async_add_entities(
+        JaamHASystemInfoSensor(
+            coordinator=entry.runtime_data.coordinator,
+            entity_description=entity_description,
+        )
+        for entity_description in SYSTEM_INFO_DESCRIPTIONS
     )

@@ -48,14 +48,62 @@
     }
   },
   "entity": {
+    "binary_sensor": {
+      "home_danger": {
+        "name": "Небезпека вдома"
+      },
+      "websocket_status": {
+        "name": "Статус WebSocket"
+      }
+    },
     "light": {
       "lamp": {
         "name": "Лампа"
       }
     },
     "select": {
+      "map_mode": {
+        "name": "Режим мапи",
+        "state": {
+          "disabled": "Вимкнено",
+          "alert": "Тривога",
+          "weather": "Погода",
+          "flag": "Прапор",
+          "lamp": "Лампа"
+        }
+      }
+    },
+    "sensor": {
+      "home_alert": {
+        "name": "Тривога вдома",
+        "state": {
+          "no_alert": "Без тривоги",
+          "alert": "Тривога",
+          "drones": "Дрони",
+          "missiles": "Ракети",
+          "kabs": "КАБи",
+          "ballistic": "Балістика",
+          "explosion": "Вибухи",
+          "recon_drones": "Розвідувальні дрони"
+        }
+      },
       "home_district": {
         "name": "Домашній регіон"
+      },
+      "used_memory": {
+        "name": "Використано пам'яті"
+      },
+      "uptime": {
+        "name": "Час роботи"
+      },
+      "wifi_uptime": {
+        "name": "Час роботи WiFi"
+      },
+      "wifi_signal": {
+        "name": "Сигнал WiFi"
+      },
+      "websocket_uptime": {
+        "name": "Час роботи WebSocket"
       }
     }
   }

@@ -1,13 +1,11 @@
-"""Home district select for jaam_ha."""
+"""Home district sensor for jaam_ha."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from custom_components.jaam_ha.api import JaamHAApiClientError
-from custom_components.jaam_ha.const import LOGGER
 from custom_components.jaam_ha.entity import JaamHAEntity
-from homeassistant.components.select import SelectEntity, SelectEntityDescription
+from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
 
 if TYPE_CHECKING:
     from custom_components.jaam_ha.coordinator import JaamHADataUpdateCoordinator
@@ -211,208 +209,31 @@ DISTRICTS: dict[int, str] = {
     1591: "м. Чернігів + ТГ",
 }
 
-# Ordered list of district IDs maintaining the original sequence
-DISTRICT_ORDER = [
-    9999,  # АР Крим
-    4,
-    32,
-    35,
-    36,
-    34,
-    33,
-    37,
-    155,  # Вінницька область
-    8,
-    39,
-    38,
-    40,
-    41,
-    225,  # Волинська область
-    9,
-    43,
-    44,
-    47,
-    48,
-    42,
-    45,
-    46,
-    332,  # Дніпропетровська область
-    28,
-    56,
-    51,
-    55,
-    53,
-    49,
-    52,
-    50,
-    54,  # Донецька область
-    10,
-    59,
-    58,
-    57,
-    60,
-    442,  # Житомирська область
-    11,
-    66,
-    61,
-    62,
-    63,
-    64,
-    65,
-    500,  # Закарпатська область
-    12,
-    146,
-    145,
-    149,
-    147,
-    148,
-    564,  # Запорізька область
-    13,
-    68,
-    67,
-    71,
-    72,
-    70,
-    69,
-    632,  # Івано-Франківська область
-    14,
-    77,
-    73,
-    75,
-    76,
-    74,
-    79,
-    78,
-    31,  # Київська область
-    15,
-    81,
-    80,
-    82,
-    83,
-    761,  # Кіровоградська область
-    16,
-    86,
-    85,
-    84,
-    87,  # Луганська область
-    27,
-    90,
-    89,
-    88,
-    91,
-    92,
-    94,
-    93,
-    845,  # Львівська область
-    17,
-    96,
-    95,
-    97,
-    98,
-    926,  # Миколаївська область
-    18,
-    105,
-    100,
-    104,
-    102,
-    103,
-    101,
-    99,
-    964,  # Одеська область
-    19,
-    107,
-    106,
-    109,
-    108,
-    1060,  # Полтавська область
-    5,
-    110,
-    111,
-    112,
-    113,
-    1133,  # Рівненська область
-    20,
-    115,
-    116,
-    117,
-    114,
-    118,
-    1187,  # Сумська область
-    21,
-    119,
-    121,
-    120,
-    1241,  # Тернопільська область
-    22,
-    124,
-    123,
-    122,
-    126,
-    127,
-    125,
-    128,
-    1293,  # Харківська область
-    23,
-    131,
-    129,
-    130,
-    132,
-    133,
-    1370,  # Херсонська область
-    3,
-    136,
-    134,
-    135,
-    1400,  # Хмельницька область
-    24,
-    153,
-    152,
-    150,
-    151,
-    1473,  # Черкаська область
-    26,
-    139,
-    138,
-    137,
-    1542,  # Чернівецька область
-    25,
-    141,
-    142,
-    143,
-    140,
-    144,
-    1591,  # Чернігівська область
-]
-
-# Reverse mapping: name -> ID for option selection
-DISTRICTS_REVERSE: dict[str, int] = {name: district_id for district_id, name in DISTRICTS.items()}
-
 
 ENTITY_DESCRIPTIONS = (
-    SelectEntityDescription(
+    SensorEntityDescription(
         key="home_district",
         translation_key="home_district",
-        icon="mdi:map-marker-radius",
-        options=[DISTRICTS[district_id] for district_id in DISTRICT_ORDER],
+        icon="mdi:home-map-marker",
         has_entity_name=True,
     ),
 )
 
 
-class JaamHAHomeDistrictSelect(SelectEntity, JaamHAEntity):
-    """Home district select class."""
+class JaamHAHomeDistrictSensor(SensorEntity, JaamHAEntity):
+    """Home district sensor class."""
 
     def __init__(
         self,
         coordinator: JaamHADataUpdateCoordinator,
-        entity_description: SelectEntityDescription,
+        entity_description: SensorEntityDescription,
     ) -> None:
-        """Initialize the select."""
+        """Initialize the sensor."""
         super().__init__(coordinator, entity_description)
 
     @property
-    def current_option(self) -> str | None:
-        """Return the current selected option."""
+    def native_value(self) -> str | None:
+        """Return the state of the sensor."""
         home_region = self.coordinator.data.get("home_region")
         if home_region is not None and home_region in DISTRICTS:
             return DISTRICTS[home_region]
@@ -423,29 +244,5 @@ class JaamHAHomeDistrictSelect(SelectEntity, JaamHAEntity):
         """Return additional state attributes."""
         home_region = self.coordinator.data.get("home_region")
         if home_region is not None:
-            return {"district_id": home_region}
+            return {"region_id": home_region}
         return {}
-
-    async def async_select_option(self, option: str) -> None:
-        """Change the selected option."""
-        # Option is district name, need to find corresponding ID
-        if option not in DISTRICTS_REVERSE:
-            LOGGER.error("Unknown district name: %s", option)
-            return
-
-        region_id = DISTRICTS_REVERSE[option]
-        LOGGER.debug("Setting home region to: %s (%s)", region_id, option)
-
-        try:
-            # Call API to set home region
-            await self.coordinator.config_entry.runtime_data.client.async_set_home_region(region_id)
-
-            # Update local data
-            self.coordinator.data["home_region"] = region_id
-
-            # Request coordinator refresh to update state
-            await self.coordinator.async_request_refresh()
-            LOGGER.info("Home region changed to: %s (%s)", region_id, DISTRICTS[region_id])
-
-        except JaamHAApiClientError as exc:
-            LOGGER.error("Failed to set home region: %s", exc)

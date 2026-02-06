@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from custom_components.jaam_ha.const import PARALLEL_UPDATES as PARALLEL_UPDATES
 from homeassistant.components.select import SelectEntityDescription
 
-from .home_district import ENTITY_DESCRIPTIONS as HOME_DISTRICT_DESCRIPTIONS, JaamHAHomeDistrictSelect
+from .map_mode import ENTITY_DESCRIPTIONS as MAP_MODE_DESCRIPTIONS, JaamHAMapModeSelect
 
 if TYPE_CHECKING:
     from custom_components.jaam_ha.data import JaamHAConfigEntry
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 # Combine all entity descriptions from different modules
-ENTITY_DESCRIPTIONS: tuple[SelectEntityDescription, ...] = (*HOME_DISTRICT_DESCRIPTIONS,)
+ENTITY_DESCRIPTIONS: tuple[SelectEntityDescription, ...] = (*MAP_MODE_DESCRIPTIONS,)
 
 
 async def async_setup_entry(
@@ -25,11 +25,11 @@ async def async_setup_entry(
 ) -> None:
     """Set up the select platform."""
 
-    # Add home district select
+    # Add map mode select
     async_add_entities(
-        JaamHAHomeDistrictSelect(
+        JaamHAMapModeSelect(
             coordinator=entry.runtime_data.coordinator,
             entity_description=entity_description,
         )
-        for entity_description in HOME_DISTRICT_DESCRIPTIONS
+        for entity_description in MAP_MODE_DESCRIPTIONS
     )

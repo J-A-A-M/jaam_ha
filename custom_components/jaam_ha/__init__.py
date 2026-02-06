@@ -38,8 +38,10 @@ if TYPE_CHECKING:
     from .data import JaamHAConfigEntry
 
 PLATFORMS: list[Platform] = [
+    Platform.BINARY_SENSOR,
     Platform.LIGHT,
     Platform.SELECT,
+    Platform.SENSOR,
 ]
 
 # This integration is configured via config entries only

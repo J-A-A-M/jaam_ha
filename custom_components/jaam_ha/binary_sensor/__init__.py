@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING
 from custom_components.jaam_ha.const import PARALLEL_UPDATES as PARALLEL_UPDATES
 from homeassistant.components.binary_sensor import BinarySensorEntityDescription
 
-from .connectivity import ENTITY_DESCRIPTIONS as CONNECTIVITY_DESCRIPTIONS, JaamHAConnectivitySensor
-from .filter import ENTITY_DESCRIPTIONS as FILTER_DESCRIPTIONS, JaamHAFilterSensor
+from .home_danger import ENTITY_DESCRIPTIONS as HOME_DANGER_DESCRIPTIONS, JaamHAHomeDangerSensor
+from .websocket_status import ENTITY_DESCRIPTIONS as WEBSOCKET_STATUS_DESCRIPTIONS, JaamHAWebSocketStatusSensor
 
 if TYPE_CHECKING:
     from custom_components.jaam_ha.data import JaamHAConfigEntry
@@ -17,8 +17,8 @@ if TYPE_CHECKING:
 
 # Combine all entity descriptions from different modules
 ENTITY_DESCRIPTIONS: tuple[BinarySensorEntityDescription, ...] = (
-    *CONNECTIVITY_DESCRIPTIONS,
-    *FILTER_DESCRIPTIONS,
+    *HOME_DANGER_DESCRIPTIONS,
+    *WEBSOCKET_STATUS_DESCRIPTIONS,
 )
 
 
@@ -28,23 +28,23 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the binary_sensor platform."""
-    # Create connectivity sensors
-    connectivity_entities = [
-        JaamHAConnectivitySensor(
+    # Create home danger sensors
+    home_danger_entities = [
+        JaamHAHomeDangerSensor(
             coordinator=entry.runtime_data.coordinator,
             entity_description=entity_description,
         )
-        for entity_description in CONNECTIVITY_DESCRIPTIONS
+        for entity_description in HOME_DANGER_DESCRIPTIONS
     ]
 
-    # Create filter sensors
-    filter_entities = [
-        JaamHAFilterSensor(
+    # Create websocket status sensors
+    websocket_status_entities = [
+        JaamHAWebSocketStatusSensor(
             coordinator=entry.runtime_data.coordinator,
             entity_description=entity_description,
         )
-        for entity_description in FILTER_DESCRIPTIONS
+        for entity_description in WEBSOCKET_STATUS_DESCRIPTIONS
     ]
 
     # Add all entities
-    async_add_entities([*connectivity_entities, *filter_entities])
+    async_add_entities([*home_danger_entities, *websocket_status_entities])

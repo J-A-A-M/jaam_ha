@@ -48,14 +48,62 @@
     }
   },
   "entity": {
+    "binary_sensor": {
+      "home_danger": {
+        "name": "Home Danger"
+      },
+      "websocket_status": {
+        "name": "WebSocket Status"
+      }
+    },
     "light": {
       "lamp": {
         "name": "Lamp"
       }
     },
     "select": {
+      "map_mode": {
+        "name": "Map Mode",
+        "state": {
+          "disabled": "Disabled",
+          "alert": "Alert",
+          "weather": "Weather",
+          "flag": "Flag",
+          "lamp": "Lamp"
+        }
+      }
+    },
+    "sensor": {
+      "home_alert": {
+        "name": "Home Alert",
+        "state": {
+          "no_alert": "No Alert",
+          "alert": "Alert",
+          "drones": "Drones",
+          "missiles": "Missiles",
+          "kabs": "KABs",
+          "ballistic": "Ballistic",
+          "explosion": "Explosion",
+          "recon_drones": "Reconnaissance Drones"
+        }
+      },
       "home_district": {
         "name": "Home District"
+      },
+      "used_memory": {
+        "name": "Used Memory"
+      },
+      "uptime": {
+        "name": "Uptime"
+      },
+      "wifi_uptime": {
+        "name": "WiFi Uptime"
+      },
+      "wifi_signal": {
+        "name": "WiFi Signal"
+      },
+      "websocket_uptime": {
+        "name": "WebSocket Uptime"
       }
     }
   }
