@@ -7,9 +7,8 @@ for maintainability and scalability.
 Package structure:
 ------------------
 - config_flow.py: Main configuration flow (user setup, reauth, reconfigure)
-- options_flow.py: Options flow for post-setup configuration changes
 - subentry_flow.py: Template for implementing subentry flows (multi-device support)
-- schemas/: Voluptuous schemas for all forms (user, options, reauth, etc.)
+- schemas/: Voluptuous schemas for all forms (user, reauth, etc.)
 - validators/: Validation logic for user inputs and credentials
 - handler.py: Backwards compatibility wrapper (imports from above modules)
 
@@ -26,9 +25,7 @@ https://developers.home-assistant.io/docs/config_entries_config_flow_handler
 from __future__ import annotations
 
 from .config_flow import JaamHAConfigFlowHandler
-from .options_flow import JaamHAOptionsFlow
 
 __all__ = [
     "JaamHAConfigFlowHandler",
-    "JaamHAOptionsFlow",
 ]

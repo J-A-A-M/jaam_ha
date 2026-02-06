@@ -1,8 +1,8 @@
 """
 API Client for jaam_ha.
 
-This module provides the API client for communicating with external services.
-It demonstrates proper error handling, authentication patterns, and async operations.
+This module provides the WebSocket API client for communicating with JAAM devices.
+It handles WebSocket connections, command sending, and state updates.
 
 For more information on creating API clients:
 https://developers.home-assistant.io/docs/api_lib_index
@@ -11,10 +11,15 @@ https://developers.home-assistant.io/docs/api_lib_index
 from __future__ import annotations
 
 import asyncio
-import socket
+from collections.abc import Callable
+import contextlib
+import json
 from typing import Any
 
 import aiohttp
+from aiohttp import WSMsgType
+
+from custom_components.jaam_ha.const import LOGGER
 
 
 class JaamHAApiClientError(Exception):
@@ -33,205 +38,519 @@ class JaamHAApiClientAuthenticationError(
     """Exception to indicate an authentication error with the API."""
 
 
-def _verify_response_or_raise(response: aiohttp.ClientResponse) -> None:
-    """
-    Verify that the API response is valid.
-
-    Raises appropriate exceptions for authentication and HTTP errors.
-
-    Args:
-        response: The aiohttp ClientResponse to verify.
-
-    Raises:
-        JaamHAApiClientAuthenticationError: For 401/403 errors.
-        aiohttp.ClientResponseError: For other HTTP errors.
-
-    """
-    if response.status in (401, 403):
-        msg = "Invalid credentials"
-        raise JaamHAApiClientAuthenticationError(
-            msg,
-        )
-    response.raise_for_status()
+# Type alias for device data
+type JaamHADeviceData = dict[str, Any]
 
 
 class JaamHAApiClient:
     """
-    API Client for Smart Air Purifier integration.
+    WebSocket API Client for JAAM device integration.
 
-    This client demonstrates authentication and API communication patterns
-    for Home Assistant integrations. It handles HTTP requests, error handling,
-    and credential management.
+    This client handles WebSocket connections to JAAM devices, command sending,
+    and state update notifications. It maintains a persistent connection and
+    automatically handles reconnection on errors.
 
-    The username and password are stored and would be used for:
-    - HTTP Basic Auth headers
-    - OAuth token exchange
-    - API key generation
-    - Session token management
-
-    Note: JSONPlaceholder is used as a demo endpoint and doesn't require auth.
-    In production, replace with your actual API endpoint that validates credentials.
+    The client connects to the device's WebSocket server (default port 81) and:
+    - Receives initial_state message upon connection
+    - Sends commands (set_map_mode, set_lamp, set_home_region)
+    - Listens for broadcast updates (state changes, alerts)
+    - Invokes callbacks when data updates are received
 
     For more information on API clients:
     https://developers.home-assistant.io/docs/api_lib_index
 
     Attributes:
-        _username: The username for API authentication.
-        _password: The password for API authentication.
+        _host: The hostname or IP address of the JAAM device.
+        _port: The WebSocket port (default 81).
         _session: The aiohttp ClientSession for making requests.
+        _ws: The active WebSocket connection.
+        _listen_task: Background task for listening to messages.
+        _data: Current device state data.
+        _update_callback: Callback invoked when data updates are received.
 
     """
 
     def __init__(
         self,
-        username: str,
-        password: str,
+        host: str,
         session: aiohttp.ClientSession,
+        port: int = 81,
     ) -> None:
         """
-        Initialize the API Client with credentials.
+        Initialize the API Client.
 
         Args:
-            username: The username for authentication from config flow.
-            password: The password for authentication from config flow.
+            host: The hostname or IP address of the JAAM device.
             session: The aiohttp ClientSession to use for requests.
+            port: The WebSocket port (default 81).
 
         """
-        self._username = username
-        self._password = password
+        self._host = host
+        self._port = int(port)  # Ensure port is always an integer
         self._session = session
+        self._ws: aiohttp.ClientWebSocketResponse | None = None
+        self._listen_task: asyncio.Task | None = None
+        self._data: JaamHADeviceData | None = None
+        self._update_callback: Callable[[JaamHADeviceData], None] | None = None
+        self._connection_callback: Callable[[bool], None] | None = None
+        self._connected = False
+        self._should_reconnect = True
+        self._reconnect_task: asyncio.Task | None = None
 
-    async def async_get_data(self) -> Any:
+    @property
+    def connected(self) -> bool:
+        """Return True if WebSocket is connected."""
+        return self._connected and self._ws is not None and not self._ws.closed
+
+    @property
+    def data(self) -> JaamHADeviceData | None:
+        """Return current device data."""
+        return self._data
+
+    def set_update_callback(self, callback: Callable[[JaamHADeviceData], None]) -> None:
         """
-        Get data from the API.
-
-        This method fetches the current state and sensor data from the device.
-        It demonstrates where credentials would be used in production:
-        - Authorization headers (Basic Auth, Bearer Token)
-        - Query parameters (username, api_key)
-        - Session cookies (after login)
-
-        Returns:
-            A dictionary containing the device data.
-
-        Raises:
-            JaamHAApiClientAuthenticationError: If authentication fails.
-            JaamHAApiClientCommunicationError: If communication fails.
-            JaamHAApiClientError: For other API errors.
-
-        """
-        # In production: Use username/password for authentication
-        # Example patterns:
-        # 1. Basic Auth: auth=aiohttp.BasicAuth(self._username, self._password)
-        # 2. Token: headers={"Authorization": f"Bearer {self._get_token()}"}
-        # 3. API Key: params={"username": self._username, "key": self._password}
-
-        return await self._api_wrapper(
-            method="get",
-            url="https://jsonplaceholder.typicode.com/posts/1",
-            # For demo purposes with JSONPlaceholder (no auth required)
-            # In production, add authentication here
-        )
-
-    async def async_set_fan_speed(self, speed: str) -> Any:
-        """
-        Set the fan speed on the device.
+        Set callback for data updates.
 
         Args:
-            speed: The fan speed to set (low, medium, high, auto).
-
-        Returns:
-            A dictionary containing the API response.
-
-        Raises:
-            JaamHAApiClientAuthenticationError: If authentication fails.
-            JaamHAApiClientCommunicationError: If communication fails.
-            JaamHAApiClientError: For other API errors.
+            callback: Function to call when new data is received.
 
         """
-        # In production: Send authenticated request to change fan speed
-        return await self._api_wrapper(
-            method="patch",
-            url="https://jsonplaceholder.typicode.com/posts/1",
-            data={"fan_speed": speed, "user": self._username},
-            headers={"Content-type": "application/json; charset=UTF-8"},
-        )
+        self._update_callback = callback
 
-    async def async_set_target_humidity(self, humidity: int) -> Any:
+    def set_connection_callback(self, callback: Callable[[bool], None]) -> None:
         """
-        Set the target humidity on the device.
+        Set callback for connection status changes.
 
         Args:
-            humidity: The target humidity percentage (30-80).
-
-        Returns:
-            A dictionary containing the API response.
-
-        Raises:
-            JaamHAApiClientAuthenticationError: If authentication fails.
-            JaamHAApiClientCommunicationError: If communication fails.
-            JaamHAApiClientError: For other API errors.
+            callback: Function to call when connection status changes.
+                     Called with True when connected, False when disconnected.
 
         """
-        # In production: Send authenticated request to change humidity setting
-        return await self._api_wrapper(
-            method="patch",
-            url="https://jsonplaceholder.typicode.com/posts/1",
-            data={"target_humidity": humidity, "user": self._username},
-            headers={"Content-type": "application/json; charset=UTF-8"},
-        )
+        self._connection_callback = callback
 
-    async def _api_wrapper(
-        self,
-        method: str,
-        url: str,
-        data: dict | None = None,
-        headers: dict | None = None,
-    ) -> Any:
+    async def async_connect(self) -> JaamHADeviceData:
         """
-        Wrapper for API requests with error handling.
+        Connect to the JAAM device WebSocket server.
 
-        This method handles all HTTP requests and translates exceptions
-        into integration-specific exceptions.
-
-        Args:
-            method: The HTTP method (get, post, patch, etc.).
-            url: The URL to request.
-            data: Optional data to send in the request body.
-            headers: Optional headers to include in the request.
+        Establishes WebSocket connection and waits for initial_state message.
 
         Returns:
-            The JSON response from the API.
+            Initial device state data.
 
         Raises:
-            JaamHAApiClientAuthenticationError: If authentication fails.
-            JaamHAApiClientCommunicationError: If communication fails.
-            JaamHAApiClientError: For other API errors.
+            JaamHAApiClientCommunicationError: If connection fails.
+            JaamHAApiClientError: For other errors.
 
         """
         try:
+            url = f"ws://{self._host}:{self._port}"
+            LOGGER.info("Connecting to JAAM device at %s", url)
+
             async with asyncio.timeout(10):
-                response = await self._session.request(
-                    method=method,
-                    url=url,
-                    headers=headers,
-                    json=data,
+                self._ws = await self._session.ws_connect(
+                    url,
+                    heartbeat=30,
+                    compress=15,
                 )
-                _verify_response_or_raise(response)
-                return await response.json()
+
+            self._connected = True
+            LOGGER.debug("WebSocket connected successfully")
+
+            # Notify coordinator of connection
+            if self._connection_callback:
+                self._connection_callback(True)
+
+            # Wait for initial_state message
+            initial_data = await self._wait_for_initial_state()
+            LOGGER.info("Received initial state - chip_id: %s", initial_data.get("chip_id"))
+
+            # Enable automatic reconnection
+            self._should_reconnect = True
+
+            # Start listening for updates in background
+            self._listen_task = asyncio.create_task(self._listen())
+            LOGGER.debug("Started background listener task")
+
+            return initial_data  # noqa: TRY300
 
         except TimeoutError as exception:
-            msg = f"Timeout error fetching information - {exception}"
-            raise JaamHAApiClientCommunicationError(
-                msg,
-            ) from exception
-        except (aiohttp.ClientError, socket.gaierror) as exception:
-            msg = f"Error fetching information - {exception}"
-            raise JaamHAApiClientCommunicationError(
-                msg,
-            ) from exception
+            msg = f"Timeout connecting to {self._host}:{self._port}"
+            LOGGER.error(msg)
+            raise JaamHAApiClientCommunicationError(msg) from exception
+        except (aiohttp.ClientError, OSError) as exception:
+            msg = f"Error connecting to {self._host}:{self._port} - {exception}"
+            LOGGER.error(msg)
+            raise JaamHAApiClientCommunicationError(msg) from exception
         except Exception as exception:
-            msg = f"Something really wrong happened! - {exception}"
-            raise JaamHAApiClientError(
-                msg,
-            ) from exception
+            msg = f"Unexpected error connecting - {exception}"
+            LOGGER.error(msg)
+            raise JaamHAApiClientError(msg) from exception
+
+    async def async_disconnect(self) -> None:
+        """Disconnect from the WebSocket server."""
+        # Disable automatic reconnection
+        self._should_reconnect = False
+        self._connected = False
+
+        # Cancel reconnect task if running
+        if self._reconnect_task and not self._reconnect_task.done():
+            self._reconnect_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._reconnect_task
+
+        # Cancel listen task
+        if self._listen_task and not self._listen_task.done():
+            self._listen_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._listen_task
+
+        # Close WebSocket connection
+        if self._ws and not self._ws.closed:
+            await self._ws.close()
+
+        self._ws = None
+        self._listen_task = None
+        self._reconnect_task = None
+
+    async def _wait_for_initial_state(self) -> JaamHADeviceData:
+        """
+        Wait for initial_state message from device.
+
+        Returns:
+            Device state data from initial_state message.
+
+        Raises:
+            JaamHAApiClientCommunicationError: If no initial state received.
+
+        """
+        if not self._ws:
+            msg = "WebSocket not connected"
+            raise JaamHAApiClientCommunicationError(msg)
+
+        try:
+            async with asyncio.timeout(10):
+                async for msg in self._ws:
+                    if msg.type == WSMsgType.TEXT:
+                        data = json.loads(msg.data)
+                        if data.get("type") == "initial_state":
+                            return self._parse_initial_state(data)
+                    elif msg.type in (WSMsgType.CLOSED, WSMsgType.ERROR):
+                        msg_text = "WebSocket closed before receiving initial state"
+                        raise JaamHAApiClientCommunicationError(msg_text)
+        except TimeoutError as exception:
+            msg = "Timeout waiting for initial state"
+            raise JaamHAApiClientCommunicationError(msg) from exception
+
+        msg = "No initial state received"
+        raise JaamHAApiClientCommunicationError(msg)
+
+    def _parse_initial_state(self, data: dict[str, Any]) -> JaamHADeviceData:
+        """
+        Parse initial_state message into device data.
+
+        Args:
+            data: The JSON data from initial_state message.
+
+        Returns:
+            Parsed device data as a dictionary.
+
+        """
+        LOGGER.debug("Received initial_state message: %s", data)
+
+        lamp_data = data.get("lamp", {})
+
+        device_data: JaamHADeviceData = {
+            "connected": data.get("connected", False),
+            "chip_id": data.get("chip_id"),
+            "fw_version": data.get("fw_version"),
+            "map_mode": data.get("map_mode"),
+            "map_mode_id": data.get("map_mode_id"),
+            "home_region": data.get("home_region"),
+            "lamp_color": lamp_data.get("color"),
+            "lamp_brightness": lamp_data.get("brightness"),
+        }
+
+        LOGGER.info(
+            "Parsed device data - chip_id: %s, fw_version: %s",
+            device_data.get("chip_id"),
+            device_data.get("fw_version"),
+        )
+        LOGGER.debug("Full device_data: %s", device_data)
+
+        self._data = device_data
+        return device_data
+
+    async def _listen(self) -> None:
+        """Listen for messages from the WebSocket server."""
+        if not self._ws:
+            return
+
+        try:
+            async for msg in self._ws:
+                if msg.type == WSMsgType.TEXT:
+                    await self._handle_message(msg.data)
+                elif msg.type in (WSMsgType.CLOSED, WSMsgType.ERROR):
+                    break
+        except asyncio.CancelledError:
+            # Task cancelled, normal shutdown
+            pass
+        except Exception as exc:  # noqa: BLE001
+            # Connection error
+            LOGGER.warning("WebSocket connection error: %s", exc)
+        finally:
+            self._connected = False
+            # Notify coordinator of disconnection
+            if self._connection_callback:
+                self._connection_callback(False)
+            LOGGER.warning("WebSocket disconnected")
+
+            # Attempt to reconnect if not explicitly disconnected
+            if self._should_reconnect:
+                LOGGER.info("Starting automatic reconnection")
+                self._reconnect_task = asyncio.create_task(self._reconnect_loop())
+
+    async def _reconnect_loop(self) -> None:
+        """Attempt to reconnect to WebSocket with adaptive backoff strategy."""
+        attempt = 0
+        max_delay = 60  # Maximum delay between attempts in seconds
+        fast_retry_attempts = 12  # Try every 5 seconds for the first minute
+
+        while self._should_reconnect:
+            attempt += 1
+
+            # First minute: retry every 5 seconds (12 attempts)
+            # After first minute: exponential backoff (10, 20, 40, 60 max)
+            if attempt <= fast_retry_attempts:
+                delay = 5
+            else:
+                # Exponential backoff starting from attempt 13
+                backoff_attempt = attempt - fast_retry_attempts
+                delay = min(5 * (2**backoff_attempt), max_delay)
+
+            LOGGER.info(
+                "Reconnection attempt %d in %d seconds",
+                attempt,
+                delay,
+            )
+
+            try:
+                await asyncio.sleep(delay)
+
+                # Check if we should still reconnect after sleep
+                if not self._should_reconnect:
+                    break
+
+                # Attempt to reconnect
+                url = f"ws://{self._host}:{self._port}"
+                LOGGER.info("Attempting to reconnect to %s", url)
+
+                async with asyncio.timeout(10):
+                    self._ws = await self._session.ws_connect(
+                        url,
+                        heartbeat=30,
+                        compress=15,
+                    )
+
+                self._connected = True
+                LOGGER.info("Reconnected successfully to device")
+
+                # Notify coordinator of reconnection
+                if self._connection_callback:
+                    self._connection_callback(True)
+
+                # Wait for initial_state message and update data
+                try:
+                    initial_data = await self._wait_for_initial_state()
+                    LOGGER.info("Received initial state after reconnection - chip_id: %s", initial_data.get("chip_id"))
+
+                    # Notify coordinator of new data
+                    if self._update_callback:
+                        self._update_callback(initial_data)
+
+                except (JaamHAApiClientError, TimeoutError, json.JSONDecodeError) as exc:
+                    LOGGER.error("Failed to get initial state after reconnection: %s", exc)
+                    # Connection established but failed to get state, close and retry
+                    if self._ws and not self._ws.closed:
+                        await self._ws.close()
+                    continue
+
+                # Start listening again
+                self._listen_task = asyncio.create_task(self._listen())
+                LOGGER.debug("Restarted listener task after reconnection")
+
+                # Reset attempt counter on successful reconnection
+                attempt = 0
+                break
+
+            except asyncio.CancelledError:
+                LOGGER.debug("Reconnection cancelled")
+                break
+            except (TimeoutError, aiohttp.ClientError, OSError) as exc:
+                LOGGER.warning(
+                    "Reconnection attempt %d failed: %s",
+                    attempt,
+                    exc,
+                )
+                # Continue loop for next attempt
+
+    async def _handle_message(self, raw_data: str) -> None:
+        """
+        Handle incoming WebSocket message.
+
+        Args:
+            raw_data: Raw JSON string from WebSocket.
+
+        """
+        try:
+            data = json.loads(raw_data)
+            msg_type = data.get("type")
+
+            if not msg_type:
+                LOGGER.debug("Received message without type: %s", raw_data)
+                return
+
+            LOGGER.debug("Received message type: %s", msg_type)
+
+            # Update local state based on message type
+            if msg_type == "map_mode_change":
+                if self._data:
+                    self._data["map_mode"] = data.get("map_mode")
+                    self._data["map_mode_id"] = data.get("map_mode_id")
+                    LOGGER.debug(
+                        "Updated map_mode: %s (id: %s)",
+                        self._data.get("map_mode"),
+                        self._data.get("map_mode_id"),
+                    )
+
+            elif msg_type == "lamp_change":
+                lamp_data = data.get("lamp", {})
+                if self._data:
+                    self._data["lamp_color"] = lamp_data.get("color")
+                    self._data["lamp_brightness"] = lamp_data.get("brightness")
+                    LOGGER.debug(
+                        "Updated lamp - color: %s, brightness: %s",
+                        self._data.get("lamp_color"),
+                        self._data.get("lamp_brightness"),
+                    )
+
+            elif msg_type == "home_region_change":
+                if self._data:
+                    self._data["home_region"] = data.get("home_region")
+                    LOGGER.debug("Updated home_region: %s", self._data.get("home_region"))
+
+            # Notify coordinator of data update
+            if self._update_callback and self._data:
+                LOGGER.debug("Invoking update callback with data: %s", self._data)
+                self._update_callback(self._data)
+
+        except json.JSONDecodeError as exc:
+            # Ignore invalid JSON
+            LOGGER.warning("Failed to parse JSON message: %s", raw_data, exc_info=exc)
+
+    async def _send_command(self, command: dict[str, Any]) -> None:
+        """
+        Send command to device.
+
+        Args:
+            command: Command dictionary to send as JSON.
+
+        Raises:
+            JaamHAApiClientCommunicationError: If send fails.
+
+        """
+        if not self.connected or not self._ws:
+            msg = "WebSocket not connected"
+            raise JaamHAApiClientCommunicationError(msg)
+
+        try:
+            await self._ws.send_json(command)
+        except (aiohttp.ClientError, OSError) as exception:
+            msg = f"Error sending command - {exception}"
+            raise JaamHAApiClientCommunicationError(msg) from exception
+
+    async def async_set_map_mode(self, mode: str | int) -> None:
+        """
+        Set map mode on device.
+
+        Args:
+            mode: Mode name (off, alert, weather, flag, lamp) or mode ID (0-4).
+
+        Raises:
+            JaamHAApiClientCommunicationError: If command fails.
+
+        """
+        command: dict[str, Any] = {"type": "set_map_mode"}
+
+        if isinstance(mode, int):
+            command["mode_id"] = mode
+        else:
+            command["mode"] = mode
+
+        await self._send_command(command)
+
+    async def async_set_lamp(
+        self,
+        color: str | None = None,
+        brightness: int | None = None,
+    ) -> None:
+        """
+        Set lamp color and/or brightness.
+
+        Args:
+            color: Hex color code (e.g., "#FF0000").
+            brightness: Brightness percentage (0-100).
+
+        Raises:
+            JaamHAApiClientCommunicationError: If command fails.
+
+        """
+        command: dict[str, Any] = {"type": "set_lamp"}
+
+        if color is not None:
+            command["color"] = color
+        if brightness is not None:
+            command["brightness"] = brightness
+
+        await self._send_command(command)
+
+    async def async_set_home_region(self, region_id: int) -> None:
+        """
+        Set home region on device.
+
+        Args:
+            region_id: Region ID (0-100).
+
+        Raises:
+            JaamHAApiClientCommunicationError: If command fails.
+
+        """
+        command = {
+            "type": "set_home_region",
+            "region_id": region_id,
+        }
+
+        await self._send_command(command)
+
+    async def async_get_data(self) -> JaamHADeviceData:
+        """
+        Get current device data.
+
+        For WebSocket client, data is updated in real-time via messages.
+        This method returns the cached data.
+
+        Returns:
+            Current device data.
+
+        Raises:
+            JaamHAApiClientCommunicationError: If not connected or no data.
+
+        """
+        if not self.connected:
+            msg = "Not connected to device"
+            raise JaamHAApiClientCommunicationError(msg)
+
+        if not self._data:
+            msg = "No data available"
+            raise JaamHAApiClientCommunicationError(msg)
+
+        return self._data

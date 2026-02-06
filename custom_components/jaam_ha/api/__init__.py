@@ -5,6 +5,7 @@ from .client import (
     JaamHAApiClientAuthenticationError,
     JaamHAApiClientCommunicationError,
     JaamHAApiClientError,
+    JaamHADeviceData,
 )
 
 __all__ = [
@@ -12,4 +13,5 @@ __all__ = [
     "JaamHAApiClientAuthenticationError",
     "JaamHAApiClientCommunicationError",
     "JaamHAApiClientError",
+    "JaamHADeviceData",
 ]

@@ -12,23 +12,22 @@ When adding many sanitizers, consider organizing by type:
 from __future__ import annotations
 
 
-def sanitize_username(username: str) -> str:
+def sanitize_host(host: str) -> str:
     """
-    Sanitize username input.
+    Sanitize host input.
 
-    This function can be extended to normalize usernames (e.g., lowercase,
-    trim whitespace) depending on API requirements.
+    Removes whitespace and converts to lowercase for consistency.
 
     Args:
-        username: Raw username input.
+        host: Raw host input (hostname or IP address).
 
     Returns:
-        Sanitized username.
+        Sanitized host.
 
     """
-    return username.strip()
+    return host.strip().lower()
 
 
 __all__ = [
-    "sanitize_username",
+    "sanitize_host",
 ]

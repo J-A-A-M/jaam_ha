@@ -12,22 +12,16 @@ https://developers.home-assistant.io/docs/config_entries_config_flow_handler
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
-
-from slugify import slugify
+from typing import Any
 
 from custom_components.jaam_ha.config_flow_handler.schemas import (
     get_reauth_schema,
     get_reconfigure_schema,
     get_user_schema,
 )
-from custom_components.jaam_ha.config_flow_handler.validators import validate_credentials
-from custom_components.jaam_ha.const import DOMAIN, LOGGER
+from custom_components.jaam_ha.config_flow_handler.validators import sanitize_host, validate_connection
+from custom_components.jaam_ha.const import CONF_HOST, CONF_PORT, DEFAULT_PORT, DOMAIN, LOGGER
 from homeassistant import config_entries
-from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
-
-if TYPE_CHECKING:
-    from custom_components.jaam_ha.config_flow_handler.options_flow import JaamHAOptionsFlow
 
 # Map exception types to error keys for user-facing messages
 ERROR_MAP = {
@@ -46,28 +40,13 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     Supported flows:
     - user: Initial setup via UI
     - reconfigure: Update existing configuration
-    - reauth: Handle expired credentials
+    - reauth: Handle connection issues
 
     For more details:
     https://developers.home-assistant.io/docs/config_entries_config_flow_handler
     """
 
     VERSION = 1
-
-    @staticmethod
-    def async_get_options_flow(
-        config_entry: config_entries.ConfigEntry,
-    ) -> JaamHAOptionsFlow:
-        """
-        Get the options flow for this handler.
-
-        Returns:
-            The options flow instance for modifying integration options.
-
-        """
-        from custom_components.jaam_ha.config_flow_handler.options_flow import JaamHAOptionsFlow  # noqa: PLC0415
-
-        return JaamHAOptionsFlow()
 
     async def async_step_user(
         self,
@@ -88,23 +67,30 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
+            # Sanitize host input
+            user_input[CONF_HOST] = sanitize_host(user_input[CONF_HOST])
+
+            # Use default port if not provided, ensure it's an integer
+            if CONF_PORT not in user_input:
+                user_input[CONF_PORT] = DEFAULT_PORT
+            else:
+                user_input[CONF_PORT] = int(user_input[CONF_PORT])
+
             try:
-                await validate_credentials(
+                chip_id = await validate_connection(
                     self.hass,
-                    username=user_input[CONF_USERNAME],
-                    password=user_input[CONF_PASSWORD],
+                    host=user_input[CONF_HOST],
+                    port=user_input[CONF_PORT],
                 )
             except Exception as exception:  # noqa: BLE001
                 errors["base"] = self._map_exception_to_error(exception)
             else:
-                # Set unique ID based on username
-                # NOTE: This is just an example - use a proper unique ID in production
-                # See: https://developers.home-assistant.io/docs/config_entries_config_flow_handler#unique-ids
-                await self.async_set_unique_id(slugify(user_input[CONF_USERNAME]))
+                # Set unique ID based on device chip_id
+                await self.async_set_unique_id(chip_id)
                 self._abort_if_unique_id_configured()
 
                 return self.async_create_entry(
-                    title=user_input[CONF_USERNAME],
+                    title=f"JAAM {user_input[CONF_HOST]}",
                     data=user_input,
                 )
 
@@ -121,7 +107,7 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         """
         Handle reconfiguration of the integration.
 
-        Allows users to update their credentials without removing and re-adding
+        Allows users to update their device host/port without removing and re-adding
         the integration.
 
         Args:
@@ -135,11 +121,20 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
+            # Sanitize host input
+            user_input[CONF_HOST] = sanitize_host(user_input[CONF_HOST])
+
+            # Use default port if not provided, ensure it's an integer
+            if CONF_PORT not in user_input:
+                user_input[CONF_PORT] = DEFAULT_PORT
+            else:
+                user_input[CONF_PORT] = int(user_input[CONF_PORT])
+
             try:
-                await validate_credentials(
+                await validate_connection(
                     self.hass,
-                    username=user_input[CONF_USERNAME],
-                    password=user_input[CONF_PASSWORD],
+                    host=user_input[CONF_HOST],
+                    port=user_input[CONF_PORT],
                 )
             except Exception as exception:  # noqa: BLE001
                 errors["base"] = self._map_exception_to_error(exception)
@@ -151,7 +146,10 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="reconfigure",
-            data_schema=get_reconfigure_schema(entry.data.get(CONF_USERNAME, "")),
+            data_schema=get_reconfigure_schema(
+                entry.data.get(CONF_HOST, ""),
+                entry.data.get(CONF_PORT, DEFAULT_PORT),
+            ),
             errors=errors,
         )
 
@@ -160,10 +158,10 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         entry_data: dict[str, Any] | None = None,
     ) -> config_entries.ConfigFlowResult:
         """
-        Handle reauthentication when credentials are invalid.
+        Handle reauthentication when connection fails.
 
         This flow is automatically triggered when the coordinator catches
-        an authentication error (ConfigEntryAuthFailed).
+        a communication error.
 
         Args:
             entry_data: The existing entry data (unused, per convention).
@@ -181,10 +179,10 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         """
         Handle reauthentication confirmation.
 
-        Shows the reauthentication form and processes updated credentials.
+        Shows the reauthentication form and processes updated connection info.
 
         Args:
-            user_input: The user input with updated credentials, or None for initial display.
+            user_input: The user input with updated connection info, or None for initial display.
 
         Returns:
             The config flow result, either showing a form or updating the entry.
@@ -194,11 +192,20 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
+            # Sanitize host input
+            user_input[CONF_HOST] = sanitize_host(user_input[CONF_HOST])
+
+            # Use default port if not provided, ensure it's an integer
+            if CONF_PORT not in user_input:
+                user_input[CONF_PORT] = DEFAULT_PORT
+            else:
+                user_input[CONF_PORT] = int(user_input[CONF_PORT])
+
             try:
-                await validate_credentials(
+                await validate_connection(
                     self.hass,
-                    username=user_input[CONF_USERNAME],
-                    password=user_input[CONF_PASSWORD],
+                    host=user_input[CONF_HOST],
+                    port=user_input[CONF_PORT],
                 )
             except Exception as exception:  # noqa: BLE001
                 errors["base"] = self._map_exception_to_error(exception)
@@ -210,10 +217,13 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="reauth_confirm",
-            data_schema=get_reauth_schema(entry.data.get(CONF_USERNAME, "")),
+            data_schema=get_reauth_schema(
+                entry.data.get(CONF_HOST, ""),
+                entry.data.get(CONF_PORT, DEFAULT_PORT),
+            ),
             errors=errors,
             description_placeholders={
-                "username": entry.data.get(CONF_USERNAME, ""),
+                "host": entry.data.get(CONF_HOST, ""),
             },
         )
 
