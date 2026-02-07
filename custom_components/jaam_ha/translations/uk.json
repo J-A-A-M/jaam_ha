@@ -106,8 +106,14 @@
       "wifi_signal": {
         "name": "Сигнал WiFi"
       },
+      "cpu_temp": {
+        "name": "Температура CPU"
+      },
       "websocket_uptime": {
         "name": "Час роботи WebSocket"
+      },
+      "home_district_temp": {
+        "name": "Температура в регіоні"
       }
     }
   }

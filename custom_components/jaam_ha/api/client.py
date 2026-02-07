@@ -267,10 +267,12 @@ class JaamHAApiClient:
             "map_mode_id": data.get("map_mode_id"),
             "home_region": data.get("home_region"),
             "home_alert_flags": data.get("home_alert_flags"),
+            "home_district_temp": data.get("home_district_temp"),
             "used_memory": data.get("used_memory"),
             "uptime": data.get("uptime"),
             "wifi_uptime": data.get("wifi_uptime"),
             "wifi_signal": data.get("wifi_signal"),
+            "cpu_temp": data.get("cpu_temp"),
             "websocket_status": data.get("websocket_status"),
             "websocket_uptime": data.get("websocket_uptime"),
             "lamp_color": lamp_data.get("color"),
@@ -459,14 +461,21 @@ class JaamHAApiClient:
                     self._data["uptime"] = data.get("uptime")
                     self._data["wifi_uptime"] = data.get("wifi_uptime")
                     self._data["wifi_signal"] = data.get("wifi_signal")
+                    self._data["cpu_temp"] = data.get("cpu_temp")
                     self._data["websocket_status"] = data.get("websocket_status")
                     self._data["websocket_uptime"] = data.get("websocket_uptime")
                     LOGGER.debug(
-                        "Updated system info - memory: %s, uptime: %s, wifi_signal: %s",
+                        "Updated system info - memory: %s, uptime: %s, wifi_signal: %s, cpu_temp: %s",
                         self._data.get("used_memory"),
                         self._data.get("uptime"),
                         self._data.get("wifi_signal"),
+                        self._data.get("cpu_temp"),
                     )
+
+            elif msg_type == "home_district_temp_change":
+                if self._data:
+                    self._data["home_district_temp"] = data.get("home_district_temp")
+                    LOGGER.debug("Updated home_district_temp: %s", self._data.get("home_district_temp"))
 
             # Notify coordinator of data update
             if self._update_callback and self._data:
