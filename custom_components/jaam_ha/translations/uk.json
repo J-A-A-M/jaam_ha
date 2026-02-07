@@ -49,8 +49,38 @@
   },
   "entity": {
     "binary_sensor": {
-      "home_air_alert": {
-        "name": "Тривога вдома"
+      "home_alert_air": {
+        "name": "Повітряна тривога"
+      },
+      "home_alert_artillery": {
+        "name": "Артилерія"
+      },
+      "home_alert_urban": {
+        "name": "Вуличні бої"
+      },
+      "home_alert_chemical": {
+        "name": "Хімічна загроза"
+      },
+      "home_alert_nuclear": {
+        "name": "Ядерна загроза"
+      },
+      "home_alert_drones": {
+        "name": "Дрони"
+      },
+      "home_alert_missiles": {
+        "name": "Ракети"
+      },
+      "home_alert_kab": {
+        "name": "КАБи"
+      },
+      "home_alert_ballistic": {
+        "name": "Балістика"
+      },
+      "home_alert_explosion": {
+        "name": "Вибухи"
+      },
+      "home_alert_recon": {
+        "name": "Розвідувальні дрони"
       },
       "websocket_status": {
         "name": "Статус WebSocket"
@@ -74,23 +104,6 @@
       }
     },
     "sensor": {
-      "home_danger": {
-        "name": "Небезпека вдома",
-        "state": {
-          "no_alert": "Немає загрози",
-          "air": "Повітряна тривога",
-          "artillery": "Артилерія",
-          "urban": "Вуличні бої",
-          "chemical": "Хімічна загроза",
-          "nuclear": "Ядерна загроза",
-          "drones": "Дрони",
-          "missiles": "Ракети",
-          "kab": "КАБи",
-          "ballistic": "Балістичні ракети",
-          "explosion": "Вибух",
-          "recon": "Розвідувальні дрони"
-        }
-      },
       "home_district": {
         "name": "Домашній регіон"
       },

@@ -6,7 +6,13 @@ from typing import TYPE_CHECKING
 
 from custom_components.jaam_ha.entity import JaamHAEntity
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorEntityDescription, SensorStateClass
-from homeassistant.const import SIGNAL_STRENGTH_DECIBELS_MILLIWATT, UnitOfInformation, UnitOfTemperature, UnitOfTime
+from homeassistant.const import (
+    SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
+    EntityCategory,
+    UnitOfInformation,
+    UnitOfTemperature,
+    UnitOfTime,
+)
 
 if TYPE_CHECKING:
     from custom_components.jaam_ha.coordinator import JaamHADataUpdateCoordinator
@@ -19,6 +25,7 @@ ENTITY_DESCRIPTIONS = (
         native_unit_of_measurement=UnitOfInformation.BYTES,
         device_class=SensorDeviceClass.DATA_SIZE,
         state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
         suggested_display_precision=0,
         has_entity_name=True,
         icon="mdi:memory",
@@ -29,6 +36,7 @@ ENTITY_DESCRIPTIONS = (
         native_unit_of_measurement=UnitOfTime.MINUTES,
         device_class=SensorDeviceClass.DURATION,
         state_class=SensorStateClass.TOTAL_INCREASING,
+        entity_category=EntityCategory.DIAGNOSTIC,
         suggested_display_precision=0,
         has_entity_name=True,
         icon="mdi:timer-outline",
@@ -39,6 +47,7 @@ ENTITY_DESCRIPTIONS = (
         native_unit_of_measurement=UnitOfTime.MINUTES,
         device_class=SensorDeviceClass.DURATION,
         state_class=SensorStateClass.TOTAL_INCREASING,
+        entity_category=EntityCategory.DIAGNOSTIC,
         suggested_display_precision=0,
         has_entity_name=True,
         icon="mdi:router-wireless",
@@ -49,6 +58,7 @@ ENTITY_DESCRIPTIONS = (
         native_unit_of_measurement=SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
         device_class=SensorDeviceClass.SIGNAL_STRENGTH,
         state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
         has_entity_name=True,
         icon="mdi:wifi",
     ),
@@ -58,6 +68,7 @@ ENTITY_DESCRIPTIONS = (
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         device_class=SensorDeviceClass.TEMPERATURE,
         state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
         suggested_display_precision=1,
         has_entity_name=True,
         icon="mdi:chip",
@@ -68,6 +79,7 @@ ENTITY_DESCRIPTIONS = (
         native_unit_of_measurement=UnitOfTime.MINUTES,
         device_class=SensorDeviceClass.DURATION,
         state_class=SensorStateClass.TOTAL_INCREASING,
+        entity_category=EntityCategory.DIAGNOSTIC,
         suggested_display_precision=0,
         has_entity_name=True,
         icon="mdi:lan-connect",

@@ -49,8 +49,38 @@
   },
   "entity": {
     "binary_sensor": {
-      "home_air_alert": {
-        "name": "Home Air Alert"
+      "home_alert_air": {
+        "name": "Air Alert"
+      },
+      "home_alert_artillery": {
+        "name": "Artillery"
+      },
+      "home_alert_urban": {
+        "name": "Urban Combat"
+      },
+      "home_alert_chemical": {
+        "name": "Chemical Threat"
+      },
+      "home_alert_nuclear": {
+        "name": "Nuclear Threat"
+      },
+      "home_alert_drones": {
+        "name": "Drones"
+      },
+      "home_alert_missiles": {
+        "name": "Missiles"
+      },
+      "home_alert_kab": {
+        "name": "KABs"
+      },
+      "home_alert_ballistic": {
+        "name": "Ballistic Missiles"
+      },
+      "home_alert_explosion": {
+        "name": "Explosion"
+      },
+      "home_alert_recon": {
+        "name": "Reconnaissance Drones"
       },
       "websocket_status": {
         "name": "WebSocket Status"
@@ -74,23 +104,6 @@
       }
     },
     "sensor": {
-      "home_danger": {
-        "name": "Home Danger",
-        "state": {
-          "no_alert": "No Alert",
-          "air": "Air Alert",
-          "artillery": "Artillery",
-          "urban": "Urban Combat",
-          "chemical": "Chemical Threat",
-          "nuclear": "Nuclear Threat",
-          "drones": "Drones",
-          "missiles": "Missiles",
-          "kab": "KABs",
-          "ballistic": "Ballistic Missiles",
-          "explosion": "Explosion",
-          "recon": "Reconnaissance Drones"
-        }
-      },
       "home_district": {
         "name": "Home District"
       },
