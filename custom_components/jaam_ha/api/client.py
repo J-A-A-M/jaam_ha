@@ -262,6 +262,7 @@ class JaamHAApiClient:
         device_data: JaamHADeviceData = {
             "connected": data.get("connected", False),
             "chip_id": data.get("chip_id"),
+            "device_name": data.get("device_name"),
             "fw_version": data.get("fw_version"),
             "map_mode_id": data.get("map_mode_id"),
             "home_region": data.get("home_region"),
@@ -446,6 +447,11 @@ class JaamHAApiClient:
                 if self._data:
                     self._data["home_alert_flags"] = data.get("home_alert_flags")
                     LOGGER.debug("Updated home_alert_flags: %s", self._data.get("home_alert_flags"))
+
+            elif msg_type == "device_name_change":
+                if self._data:
+                    self._data["device_name"] = data.get("device_name")
+                    LOGGER.info("Updated device_name: %s", self._data.get("device_name"))
 
             elif msg_type == "system_info":
                 if self._data:
