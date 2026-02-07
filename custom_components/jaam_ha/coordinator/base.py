@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING
 from custom_components.jaam_ha.api import JaamHAApiClientAuthenticationError, JaamHAApiClientError, JaamHADeviceData
 from custom_components.jaam_ha.const import LOGGER
 from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 if TYPE_CHECKING:
@@ -111,6 +112,28 @@ class JaamHADataUpdateCoordinator(DataUpdateCoordinator[JaamHADeviceData]):
             data.get("chip_id"),
             data.keys(),
         )
+
+        # Check if device_name changed and update device registry
+        # Note: We compare with cached value because self.data might be the same object as data
+        if "device_name" in data:
+            new_name = data.get("device_name")
+            # Use cached value from previous update (not self.data which might be the same object as data)
+            old_name = getattr(self, "_cached_device_name", None)
+
+            LOGGER.debug(
+                "Checking device_name: old='%s', new='%s'",
+                old_name,
+                new_name,
+            )
+
+            # Update device name if it changed
+            if new_name and old_name != new_name:
+                LOGGER.info("Device name changed from '%s' to '%s'", old_name, new_name)
+                self._update_device_name(new_name)
+
+            # Cache new value for next comparison
+            self._cached_device_name = new_name
+
         # Update coordinator data and notify all listening entities
         self.async_set_updated_data(data)
 
@@ -138,6 +161,30 @@ class JaamHADataUpdateCoordinator(DataUpdateCoordinator[JaamHADeviceData]):
         else:
             LOGGER.info("WebSocket connected")
             # On reconnection, entities will be marked available on next data update
+
+    def _update_device_name(self, new_name: str) -> None:
+        """
+        Update device name in device registry.
+
+        Args:
+            new_name: New device name from device.
+
+        """
+        device_reg = dr.async_get(self.hass)
+        chip_id = self.data.get("chip_id") if self.data else None
+        device_identifier = chip_id or self.config_entry.entry_id
+
+        # Find the device by identifier
+        device = device_reg.async_get_device(identifiers={(self.config_entry.domain, device_identifier)})
+
+        if device:
+            device_reg.async_update_device(
+                device.id,
+                name=new_name,
+            )
+            LOGGER.info("Updated device name to '%s' in device registry", new_name)
+        else:
+            LOGGER.warning("Device not found in registry for identifier: %s", device_identifier)
 
     async def _async_update_data(self) -> JaamHADeviceData:
         """

@@ -106,10 +106,19 @@ class JaamHAEntity(CoordinatorEntity[JaamHADataUpdateCoordinator]):
                 self._attr_unique_id,
             )
 
-        # Set device info with chip_id as identifier and name
+        # Set device info with chip_id as identifier and device_name as name
         chip_id = coordinator.data.get("chip_id") if coordinator.data else None
-        device_identifier = chip_id if chip_id else coordinator.config_entry.entry_id
-        device_name = f"JAAM {chip_id}" if chip_id else coordinator.config_entry.title
+        device_identifier = chip_id or coordinator.config_entry.entry_id
+        device_name_from_device = coordinator.data.get("device_name") if coordinator.data else None
+
+        # Use device_name from device if available, otherwise fallback to chip_id or entry title
+        if device_name_from_device:
+            device_name = device_name_from_device
+        elif chip_id:
+            device_name = f"JAAM {chip_id}"
+        else:
+            device_name = coordinator.config_entry.title
+
         fw_version = coordinator.data.get("fw_version") if coordinator.data else None
 
         # Build configuration URL from config entry
