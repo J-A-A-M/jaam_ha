@@ -131,8 +131,23 @@ def get_reauth_schema(host: str, port: int = DEFAULT_PORT) -> vol.Schema:
     )
 
 
+def get_zeroconf_confirm_schema() -> vol.Schema:
+    """
+    Get schema for zeroconf confirmation step.
+
+    Returns an empty schema since zeroconf already provides all needed data.
+    The user just needs to confirm whether to add the discovered device.
+
+    Returns:
+        Empty voluptuous schema for confirmation.
+
+    """
+    return vol.Schema({})
+
+
 __all__ = [
     "get_reauth_schema",
     "get_reconfigure_schema",
     "get_user_schema",
+    "get_zeroconf_confirm_schema",
 ]
