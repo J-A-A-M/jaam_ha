@@ -20,6 +20,7 @@ Uncomment and customize these badges if you want to use them:
 ## ✨ Features
 
 - **Easy Setup**: Simple configuration through the UI - no YAML required
+- **Automatic Discovery**: Zeroconf support for automatic device detection
 - **Real-time Monitoring**: WebSocket connection for instant updates
 - **Alert System**: 11 separate binary sensors for different threat types
 - **Location Info**: Track home district name and temperature
@@ -69,7 +70,20 @@ If you prefer not to use HACS:
 
 **Important:** You must have installed the integration first (see Step 1) and restarted Home Assistant!
 
-#### Option 1: One-Click Setup (Quick)
+#### Automatic Discovery (Recommended)
+
+If your JAAM device supports zeroconf, it will be **automatically discovered** by Home Assistant:
+
+1. Go to **Settings** → **Devices & Services**
+2. Look for a **"Discovered"** notification for JAAM
+3. Click **"Configure"** on the notification
+4. Verify the host/port and click Submit
+
+> **Note:** Automatic discovery requires your device to broadcast the `_jaam-ws._tcp.local.` service on your network.
+
+#### Option 1: One-Click Setup (Manual)
+
+If automatic discovery doesn't work, use one-click setup:
 
 Click the button below to open the configuration dialog:
 

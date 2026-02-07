@@ -8,6 +8,10 @@
           "port": "Port"
         }
       },
+      "zeroconf_confirm": {
+        "title": "Discovered JAAM Device",
+        "description": "A JAAM device was discovered on your network at {name}. Do you want to add it to Home Assistant?"
+      },
       "reconfigure": {
         "description": "Update the connection settings for this device.",
         "data": {
@@ -30,7 +34,8 @@
       "unknown": "Unknown error occurred."
     },
     "abort": {
-      "already_configured": "This device is already configured."
+      "already_configured": "This device is already configured.",
+      "cannot_connect": "Failed to connect to the discovered device."
     }
   },
   "exceptions": {
