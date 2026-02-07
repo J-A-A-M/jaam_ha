@@ -9,6 +9,7 @@ from homeassistant.components.sensor import SensorEntityDescription
 
 from .home_danger import ENTITY_DESCRIPTIONS as HOME_DANGER_DESCRIPTIONS, JaamHAHomeDangerSensor
 from .home_district import ENTITY_DESCRIPTIONS as HOME_DISTRICT_DESCRIPTIONS, JaamHAHomeDistrictSensor
+from .home_district_temp import ENTITY_DESCRIPTIONS as HOME_DISTRICT_TEMP_DESCRIPTIONS, JaamHAHomeDistrictTempSensor
 from .system_info import ENTITY_DESCRIPTIONS as SYSTEM_INFO_DESCRIPTIONS, JaamHASystemInfoSensor
 
 if TYPE_CHECKING:
@@ -20,6 +21,7 @@ if TYPE_CHECKING:
 ENTITY_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
     *HOME_DANGER_DESCRIPTIONS,
     *HOME_DISTRICT_DESCRIPTIONS,
+    *HOME_DISTRICT_TEMP_DESCRIPTIONS,
     *SYSTEM_INFO_DESCRIPTIONS,
 )
 
@@ -45,6 +47,14 @@ async def async_setup_entry(
             entity_description=entity_description,
         )
         for entity_description in HOME_DISTRICT_DESCRIPTIONS
+    )
+    # Add home district temperature sensor
+    async_add_entities(
+        JaamHAHomeDistrictTempSensor(
+            coordinator=entry.runtime_data.coordinator,
+            entity_description=entity_description,
+        )
+        for entity_description in HOME_DISTRICT_TEMP_DESCRIPTIONS
     )
     # Add system info sensors
     async_add_entities(

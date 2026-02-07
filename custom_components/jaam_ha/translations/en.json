@@ -106,8 +106,14 @@
       "wifi_signal": {
         "name": "WiFi Signal"
       },
+      "cpu_temp": {
+        "name": "CPU Temperature"
+      },
       "websocket_uptime": {
         "name": "WebSocket Uptime"
+      },
+      "home_district_temp": {
+        "name": "Home District Temperature"
       }
     }
   }

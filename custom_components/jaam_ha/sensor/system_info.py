@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from custom_components.jaam_ha.entity import JaamHAEntity
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorEntityDescription, SensorStateClass
-from homeassistant.const import SIGNAL_STRENGTH_DECIBELS_MILLIWATT, UnitOfInformation, UnitOfTime
+from homeassistant.const import SIGNAL_STRENGTH_DECIBELS_MILLIWATT, UnitOfInformation, UnitOfTemperature, UnitOfTime
 
 if TYPE_CHECKING:
     from custom_components.jaam_ha.coordinator import JaamHADataUpdateCoordinator
@@ -51,6 +51,16 @@ ENTITY_DESCRIPTIONS = (
         state_class=SensorStateClass.MEASUREMENT,
         has_entity_name=True,
         icon="mdi:wifi",
+    ),
+    SensorEntityDescription(
+        key="cpu_temp",
+        translation_key="cpu_temp",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=1,
+        has_entity_name=True,
+        icon="mdi:chip",
     ),
     SensorEntityDescription(
         key="websocket_uptime",
