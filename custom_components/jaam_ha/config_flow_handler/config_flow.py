@@ -19,6 +19,7 @@ from custom_components.jaam_ha.config_flow_handler.schemas import (
     get_reauth_schema,
     get_reconfigure_schema,
     get_user_schema,
+    get_zeroconf_confirm_schema,
 )
 from custom_components.jaam_ha.config_flow_handler.validators import sanitize_host, validate_connection
 from custom_components.jaam_ha.const import CONF_HOST, CONF_PORT, DEFAULT_PORT, DOMAIN, LOGGER
@@ -55,6 +56,9 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         """Initialize the config flow."""
         super().__init__()
         self._discovered_device_name: str | None = None
+        self._discovered_host: str | None = None
+        self._discovered_port: int | None = None
+        self._discovered_chip_id: str | None = None
 
     async def async_step_user(
         self,
@@ -173,12 +177,50 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self.context["title_placeholders"] = {
             "name": display_name,
         }
-        # Store device_name for use in async_step_user
-        self._discovered_device_name = device_name
 
-        # Pre-fill the form with discovered values
-        return await self.async_step_user(
-            user_input={CONF_HOST: host, CONF_PORT: port},
+        # Store discovered data for use in confirmation step
+        self._discovered_device_name = display_name
+        self._discovered_host = host
+        self._discovered_port = port
+        self._discovered_chip_id = str(chip_id)
+
+        # Show confirmation form instead of automatically creating entry
+        return await self.async_step_zeroconf_confirm()
+
+    async def async_step_zeroconf_confirm(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> config_entries.ConfigFlowResult:
+        """
+        Handle user confirmation of discovered device.
+
+        Shows a confirmation form where the user can decide whether to add
+        the discovered device to Home Assistant.
+
+        Args:
+            user_input: The user input from the confirmation form (empty dict on confirm).
+
+        Returns:
+            The config flow result, either showing a form or creating an entry.
+
+        """
+        if user_input is not None:
+            # User confirmed, create config entry with discovered data
+            return self.async_create_entry(
+                title=self._discovered_device_name or "JAAM",
+                data={
+                    CONF_HOST: self._discovered_host,
+                    CONF_PORT: self._discovered_port,
+                },
+            )
+
+        # Show confirmation form with device info
+        return self.async_show_form(
+            step_id="zeroconf_confirm",
+            data_schema=get_zeroconf_confirm_schema(),
+            description_placeholders={
+                "name": self._discovered_device_name or "Unknown",
+            },
         )
 
     async def async_step_reconfigure(

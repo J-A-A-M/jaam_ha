@@ -22,6 +22,7 @@ from custom_components.jaam_ha.config_flow_handler.schemas.config import (
     get_reauth_schema,
     get_reconfigure_schema,
     get_user_schema,
+    get_zeroconf_confirm_schema,
 )
 
 # Re-export all schemas for convenient imports
@@ -29,4 +30,5 @@ __all__ = [
     "get_reauth_schema",
     "get_reconfigure_schema",
     "get_user_schema",
+    "get_zeroconf_confirm_schema",
 ]
