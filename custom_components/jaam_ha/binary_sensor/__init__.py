@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from custom_components.jaam_ha.const import PARALLEL_UPDATES as PARALLEL_UPDATES
 from homeassistant.components.binary_sensor import BinarySensorEntityDescription
 
-from .home_danger import ENTITY_DESCRIPTIONS as HOME_DANGER_DESCRIPTIONS, JaamHAHomeDangerSensor
+from .home_air_alert import ENTITY_DESCRIPTIONS as HOME_AIR_ALERT_DESCRIPTIONS, JaamHAHomeAirAlertSensor
 from .websocket_status import ENTITY_DESCRIPTIONS as WEBSOCKET_STATUS_DESCRIPTIONS, JaamHAWebSocketStatusSensor
 
 if TYPE_CHECKING:
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 # Combine all entity descriptions from different modules
 ENTITY_DESCRIPTIONS: tuple[BinarySensorEntityDescription, ...] = (
-    *HOME_DANGER_DESCRIPTIONS,
+    *HOME_AIR_ALERT_DESCRIPTIONS,
     *WEBSOCKET_STATUS_DESCRIPTIONS,
 )
 
@@ -28,13 +28,13 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the binary_sensor platform."""
-    # Create home danger sensors
-    home_danger_entities = [
-        JaamHAHomeDangerSensor(
+    # Create home air alert sensors
+    home_air_alert_entities = [
+        JaamHAHomeAirAlertSensor(
             coordinator=entry.runtime_data.coordinator,
             entity_description=entity_description,
         )
-        for entity_description in HOME_DANGER_DESCRIPTIONS
+        for entity_description in HOME_AIR_ALERT_DESCRIPTIONS
     ]
 
     # Create websocket status sensors
@@ -47,4 +47,4 @@ async def async_setup_entry(
     ]
 
     # Add all entities
-    async_add_entities([*home_danger_entities, *websocket_status_entities])
+    async_add_entities([*home_air_alert_entities, *websocket_status_entities])

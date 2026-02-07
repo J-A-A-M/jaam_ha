@@ -49,8 +49,8 @@
   },
   "entity": {
     "binary_sensor": {
-      "home_danger": {
-        "name": "Home Danger"
+      "home_air_alert": {
+        "name": "Home Air Alert"
       },
       "websocket_status": {
         "name": "WebSocket Status"
@@ -74,17 +74,21 @@
       }
     },
     "sensor": {
-      "home_alert": {
-        "name": "Home Alert",
+      "home_danger": {
+        "name": "Home Danger",
         "state": {
           "no_alert": "No Alert",
-          "alert": "Alert",
+          "air": "Air Alert",
+          "artillery": "Artillery",
+          "urban": "Urban Combat",
+          "chemical": "Chemical Threat",
+          "nuclear": "Nuclear Threat",
           "drones": "Drones",
           "missiles": "Missiles",
-          "kabs": "KABs",
-          "ballistic": "Ballistic",
+          "kab": "KABs",
+          "ballistic": "Ballistic Missiles",
           "explosion": "Explosion",
-          "recon_drones": "Reconnaissance Drones"
+          "recon": "Reconnaissance Drones"
         }
       },
       "home_district": {

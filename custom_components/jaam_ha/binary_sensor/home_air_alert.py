@@ -1,4 +1,4 @@
-"""Home danger binary sensor for jaam_ha."""
+"""Home air alert binary sensor for jaam_ha."""
 
 from __future__ import annotations
 
@@ -16,17 +16,17 @@ if TYPE_CHECKING:
 
 ENTITY_DESCRIPTIONS = (
     BinarySensorEntityDescription(
-        key="home_danger",
-        translation_key="home_danger",
+        key="home_air_alert",
+        translation_key="home_air_alert",
         device_class=BinarySensorDeviceClass.SAFETY,
-        icon="mdi:home-alert",
+        icon="mdi:alarm-light",
         has_entity_name=True,
     ),
 )
 
 
-class JaamHAHomeDangerSensor(BinarySensorEntity, JaamHAEntity):
-    """Home danger binary sensor for jaam_ha."""
+class JaamHAHomeAirAlertSensor(BinarySensorEntity, JaamHAEntity):
+    """Home air alert binary sensor for jaam_ha."""
 
     def __init__(
         self,
@@ -38,27 +38,27 @@ class JaamHAHomeDangerSensor(BinarySensorEntity, JaamHAEntity):
 
     @property
     def is_on(self) -> bool:
-        """Return true if there is danger in home region (alert active)."""
-        home_alert_bit = self.coordinator.data.get("home_alert_bit")
-        # Danger when alert_bit >= 0 (any alert type)
-        # Safe when alert_bit == -1 (no alert)
-        if home_alert_bit is not None:
-            return home_alert_bit >= 0
+        """Return true if air alert is active in home region."""
+        home_alert_flags = self.coordinator.data.get("home_alert_flags")
+        # Check if bit 0 (air alert) is set
+        if home_alert_flags is not None and home_alert_flags > 0:
+            return bool(home_alert_flags & (1 << 0))
         return False
 
     @property
     def icon(self) -> str:
-        """Return the icon based on danger state."""
+        """Return the icon based on air alert state."""
         if self.is_on:
-            return "mdi:home-alert"
+            return "mdi:alarm-light"
         return "mdi:home-circle-outline"
 
     @property
     def extra_state_attributes(self) -> dict[str, int | str | None]:
         """Return additional state attributes."""
-        home_alert_bit = self.coordinator.data.get("home_alert_bit")
+        home_alert_flags = self.coordinator.data.get("home_alert_flags")
         home_region = self.coordinator.data.get("home_region")
         return {
-            "alert_bit": home_alert_bit,
+            "alert_flags": home_alert_flags,
             "home_region": home_region,
+            "air_alert_active": self.is_on,
         }

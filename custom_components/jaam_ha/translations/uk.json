@@ -49,8 +49,8 @@
   },
   "entity": {
     "binary_sensor": {
-      "home_danger": {
-        "name": "Небезпека вдома"
+      "home_air_alert": {
+        "name": "Тривога вдома"
       },
       "websocket_status": {
         "name": "Статус WebSocket"
@@ -74,17 +74,21 @@
       }
     },
     "sensor": {
-      "home_alert": {
-        "name": "Тривога вдома",
+      "home_danger": {
+        "name": "Небезпека вдома",
         "state": {
-          "no_alert": "Без тривоги",
-          "alert": "Тривога",
+          "no_alert": "Немає загрози",
+          "air": "Повітряна тривога",
+          "artillery": "Артилерія",
+          "urban": "Вуличні бої",
+          "chemical": "Хімічна загроза",
+          "nuclear": "Ядерна загроза",
           "drones": "Дрони",
           "missiles": "Ракети",
-          "kabs": "КАБи",
-          "ballistic": "Балістика",
-          "explosion": "Вибухи",
-          "recon_drones": "Розвідувальні дрони"
+          "kab": "КАБи",
+          "ballistic": "Балістичні ракети",
+          "explosion": "Вибух",
+          "recon": "Розвідувальні дрони"
         }
       },
       "home_district": {
