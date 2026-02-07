@@ -265,7 +265,7 @@ class JaamHAApiClient:
             "fw_version": data.get("fw_version"),
             "map_mode_id": data.get("map_mode_id"),
             "home_region": data.get("home_region"),
-            "home_alert_bit": data.get("home_alert_bit"),
+            "home_alert_flags": data.get("home_alert_flags"),
             "used_memory": data.get("used_memory"),
             "uptime": data.get("uptime"),
             "wifi_uptime": data.get("wifi_uptime"),
@@ -444,8 +444,8 @@ class JaamHAApiClient:
 
             elif msg_type == "home_alert_change":
                 if self._data:
-                    self._data["home_alert_bit"] = data.get("home_alert_bit")
-                    LOGGER.debug("Updated home_alert_bit: %s", self._data.get("home_alert_bit"))
+                    self._data["home_alert_flags"] = data.get("home_alert_flags")
+                    LOGGER.debug("Updated home_alert_flags: %s", self._data.get("home_alert_flags"))
 
             elif msg_type == "system_info":
                 if self._data:

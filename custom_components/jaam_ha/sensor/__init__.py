@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from custom_components.jaam_ha.const import PARALLEL_UPDATES as PARALLEL_UPDATES
 from homeassistant.components.sensor import SensorEntityDescription
 
-from .home_alert import ENTITY_DESCRIPTIONS as HOME_ALERT_DESCRIPTIONS, JaamHAHomeAlertSensor
+from .home_danger import ENTITY_DESCRIPTIONS as HOME_DANGER_DESCRIPTIONS, JaamHAHomeDangerSensor
 from .home_district import ENTITY_DESCRIPTIONS as HOME_DISTRICT_DESCRIPTIONS, JaamHAHomeDistrictSensor
 from .system_info import ENTITY_DESCRIPTIONS as SYSTEM_INFO_DESCRIPTIONS, JaamHASystemInfoSensor
 
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 # Combine all entity descriptions from different modules
 ENTITY_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
-    *HOME_ALERT_DESCRIPTIONS,
+    *HOME_DANGER_DESCRIPTIONS,
     *HOME_DISTRICT_DESCRIPTIONS,
     *SYSTEM_INFO_DESCRIPTIONS,
 )
@@ -30,13 +30,13 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the sensor platform."""
-    # Add home alert sensor
+    # Add home danger sensor
     async_add_entities(
-        JaamHAHomeAlertSensor(
+        JaamHAHomeDangerSensor(
             coordinator=entry.runtime_data.coordinator,
             entity_description=entity_description,
         )
-        for entity_description in HOME_ALERT_DESCRIPTIONS
+        for entity_description in HOME_DANGER_DESCRIPTIONS
     )
     # Add home district sensor
     async_add_entities(
