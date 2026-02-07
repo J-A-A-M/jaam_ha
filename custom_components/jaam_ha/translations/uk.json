@@ -8,6 +8,10 @@
           "port": "Порт"
         }
       },
+      "zeroconf_confirm": {
+        "title": "Виявлено пристрій JAAM",
+        "description": "Пристрій JAAM виявлено у вашій мережі за адресою {name}. Бажаєте додати його до Home Assistant?"
+      },
       "reconfigure": {
         "description": "Оновіть налаштування підключення для цього пристрою.",
         "data": {
@@ -30,7 +34,8 @@
       "unknown": "Сталася невідома помилка."
     },
     "abort": {
-      "already_configured": "Цей пристрій вже налаштовано."
+      "already_configured": "Цей пристрій вже налаштовано.",
+      "cannot_connect": "Не вдалося підключитися до виявленого пристрою."
     }
   },
   "exceptions": {

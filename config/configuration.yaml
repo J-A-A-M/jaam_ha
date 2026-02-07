@@ -76,6 +76,15 @@ webhook:
 # https://www.home-assistant.io/integrations/my/
 my:
 
+# https://www.home-assistant.io/integrations/zeroconf/
+zeroconf:
+  # Enable zeroconf/mDNS discovery for automatic device detection
+  # This is normally loaded by default_config, but we enable it explicitly
+
+# https://www.home-assistant.io/integrations/ssdp/
+ssdp:
+  # SSDP is not needed for JAAM, but useful for development
+
 # https://www.home-assistant.io/integrations/recorder/
 recorder:
   # Development-friendly database settings
@@ -118,7 +127,8 @@ logger:
     homeassistant.components.recorder.util: warning
     homeassistant.components.websocket_api: warning
     homeassistant.components.http.ban: warning
-    homeassistant.components.zeroconf: warning
+    # Enable zeroconf debug logging for autodiscovery troubleshooting
+    homeassistant.components.zeroconf: debug
     homeassistant.components.ssdp: warning
     homeassistant.components.bluetooth: warning
     # Conversation can be noisy with hassil
@@ -153,7 +163,9 @@ logger:
     # Entity registration problems
     homeassistant.helpers.entity_registry: info
     # Config flow debugging (setup, options)
-    homeassistant.config_entries: info
+    homeassistant.config_entries: debug
+    # Discovery flow debugging
+    homeassistant.helpers.discovery_flow: debug
 
     # Your integration debug logging - shows EVERYTHING from your integration
     custom_components.jaam_ha: debug

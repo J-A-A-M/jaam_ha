@@ -3,6 +3,7 @@ Config flow for jaam_ha.
 
 This module implements the main configuration flow including:
 - Initial user setup
+- Zeroconf discovery
 - Reconfiguration of existing entries
 - Reauthentication flow
 
@@ -22,6 +23,7 @@ from custom_components.jaam_ha.config_flow_handler.schemas import (
 from custom_components.jaam_ha.config_flow_handler.validators import sanitize_host, validate_connection
 from custom_components.jaam_ha.const import CONF_HOST, CONF_PORT, DEFAULT_PORT, DOMAIN, LOGGER
 from homeassistant import config_entries
+from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 
 # Map exception types to error keys for user-facing messages
 ERROR_MAP = {
@@ -39,6 +41,7 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     Supported flows:
     - user: Initial setup via UI
+    - zeroconf: Automatic discovery
     - reconfigure: Update existing configuration
     - reauth: Handle connection issues
 
@@ -47,6 +50,11 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     """
 
     VERSION = 1
+
+    def __init__(self) -> None:
+        """Initialize the config flow."""
+        super().__init__()
+        self._discovered_device_name: str | None = None
 
     async def async_step_user(
         self,
@@ -82,15 +90,20 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     host=user_input[CONF_HOST],
                     port=user_input[CONF_PORT],
                 )
+                LOGGER.debug("Connection validated, chip_id: %s", chip_id)
             except Exception as exception:  # noqa: BLE001
+                LOGGER.error("Connection validation failed: %s", exception)
                 errors["base"] = self._map_exception_to_error(exception)
             else:
                 # Set unique ID based on device chip_id
                 await self.async_set_unique_id(chip_id)
                 self._abort_if_unique_id_configured()
 
+                # Use discovered device name if available (from zeroconf), otherwise chip_id
+                title = self._discovered_device_name or f"JAAM {chip_id}"
+
                 return self.async_create_entry(
-                    title=f"JAAM {user_input[CONF_HOST]}",
+                    title=title,
                     data=user_input,
                 )
 
@@ -98,6 +111,74 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=get_user_schema(user_input),
             errors=errors,
+        )
+
+    async def async_step_zeroconf(
+        self,
+        discovery_info: ZeroconfServiceInfo,
+    ) -> config_entries.ConfigFlowResult:
+        """
+        Handle zeroconf discovery.
+
+        This is called when a JAAM device is discovered via zeroconf.
+        The device provides chip_id, version, and device_name in TXT metadata.
+
+        Args:
+            discovery_info: The zeroconf discovery information.
+
+        Returns:
+            The config flow result, either aborting or showing confirmation form.
+
+        """
+        host = discovery_info.host
+        port = discovery_info.port or DEFAULT_PORT
+
+        # Extract chip_id, version, and device_name from TXT metadata
+        # properties may contain bytes or str, handle both cases
+        chip_id_raw = discovery_info.properties.get("chipId") or discovery_info.properties.get("chip_id")
+        version_raw = discovery_info.properties.get("version")
+        device_name_raw = discovery_info.properties.get("deviceName") or discovery_info.properties.get("device_name")
+
+        # Decode bytes to str if necessary
+        chip_id = chip_id_raw.decode() if isinstance(chip_id_raw, bytes) else chip_id_raw
+        version = version_raw.decode() if isinstance(version_raw, bytes) else version_raw
+        device_name = device_name_raw.decode() if isinstance(device_name_raw, bytes) else device_name_raw
+
+        # Abort if chip_id is missing
+        if not chip_id:
+            LOGGER.error(
+                "Zeroconf discovery failed: missing chip_id in TXT metadata (properties: %s)",
+                discovery_info.properties,
+            )
+            return self.async_abort(reason="cannot_connect")
+
+        LOGGER.info(
+            "Discovered JAAM device via zeroconf: %s (chip_id: %s, version: %s) at %s:%s",
+            device_name or chip_id,
+            chip_id,
+            version,
+            host,
+            port,
+        )
+
+        # Set unique ID based on device chip_id from metadata
+        await self.async_set_unique_id(str(chip_id))
+        self._abort_if_unique_id_configured(
+            updates={CONF_HOST: host, CONF_PORT: port},
+        )
+
+        # Store discovery info for confirmation step
+        # Use device_name from TXT if available, otherwise fallback to chip_id
+        display_name = device_name or f"JAAM {chip_id}"
+        self.context["title_placeholders"] = {
+            "name": display_name,
+        }
+        # Store device_name for use in async_step_user
+        self._discovered_device_name = device_name
+
+        # Pre-fill the form with discovered values
+        return await self.async_step_user(
+            user_input={CONF_HOST: host, CONF_PORT: port},
         )
 
     async def async_step_reconfigure(
