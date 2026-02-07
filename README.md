@@ -21,32 +21,22 @@ Uncomment and customize these badges if you want to use them:
 ## ✨ Features
 
 - **Easy Setup**: Simple configuration through the UI - no YAML required
-- **Air Quality Monitoring**: Track AQI and PM2.5 levels in real-time
-- **Filter Management**: Monitor filter life and get replacement alerts
-- **Smart Control**: Adjust fan speed, target humidity, and operating modes
-- **Child Lock**: Safety feature to prevent accidental changes
-- **Diagnostic Info**: View filter life, runtime hours, and device statistics
-- **Reconfigurable**: Change credentials anytime without removing the integration
-- **Options Flow**: Adjust settings like update interval after setup
-- **Custom Services**: Advanced control with built-in service calls
+- **Real-time Monitoring**: WebSocket connection for instant updates
+- **Alert System**: 11 separate binary sensors for different threat types
+- **Location Info**: Track home district name and temperature
+- **System Diagnostics**: Monitor device health (memory, uptime, WiFi signal, CPU temperature)
+- **Smart Light Control**: Control integrated lamp with brightness and color
+- **Map Display**: Select different map visualization modes
+- **Reconfigurable**: Change host/port anytime without removing the integration
 
 **This integration will set up the following platforms.**
 
 Platform | Description
 -- | --
-`sensor` | Air quality index (AQI), PM2.5, filter life, and runtime
-`binary_sensor` | API connection status and filter replacement alert
-`switch` | Child lock and LED display controls
-`select` | Fan speed selection (Low/Medium/High/Auto)
-`number` | Target humidity setting (30-80%)
-`button` | Reset filter timer after replacement
-`fan` | Air purifier fan control with speed settings
-
-> **💡 Interactive Demo**: The entities are interconnected for demonstration:
->
-> - Press the **Reset Filter Timer** button → **Filter Life Remaining** sensor updates to 100%
-> - Change the **Air Purifier** fan speed → **Fan Speed** select syncs automatically
-> - Change the **Fan Speed** select → **Air Purifier** fan syncs automatically
+`binary_sensor` | WebSocket connection status and 11 alert type sensors
+`light` | Lamp control with brightness and color
+`select` | Map mode selection
+`sensor` | Home district, temperature, and system diagnostics (6 sensors)
 
 ## 🚀 Quick Start
 
@@ -88,11 +78,11 @@ Click the button below to open the configuration dialog:
 
 Follow the setup wizard:
 
-1. Enter your username
-2. Enter your password
+1. Enter your device **Host** (IP address or hostname)
+2. Enter the **Port** (default: 81)
 3. Click Submit
 
-That's it! The integration will start loading your data.
+That's it! The integration will connect to your JAAM device via WebSocket.
 
 #### Option 2: Manual Configuration
 
@@ -101,167 +91,137 @@ That's it! The integration will start loading your data.
 3. Search for "JAAM"
 4. Follow the same setup steps as Option 1
 
-### Step 3: Adjust Settings (Optional)
+### Step 3: Reconfigure Connection (Optional)
 
-After setup, you can adjust options:
+You can change the device connection settings anytime:
 
 1. Go to **Settings** → **Devices & Services**
 2. Find **JAAM**
-3. Click **Configure** to adjust:
-   - Update interval (how often to refresh data)
-   - Enable debug logging
-
-You can also **Reconfigure** your credentials anytime without removing the integration.
+3. Click the **3 dots menu** → **Reconfigure**
+4. Update host/port as needed
 
 ### Step 4: Start Using!
 
-The integration creates several entities for your air purifier:
+The integration creates several entities for your JAAM device:
 
-- **Sensors**: Air quality index, PM2.5 levels, filter life remaining, total runtime
-- **Binary Sensors**: API connection status, filter replacement alert
-- **Switches**: Child lock, LED display control
-- **Select**: Fan speed (Low/Medium/High/Auto)
-- **Number**: Target humidity (30-80%)
-- **Button**: Reset filter timer
-- **Fan**: Air purifier fan control
+- **Binary Sensors**: WebSocket connection status + 11 alert type sensors
+- **Light**: Lamp control with brightness and color
+- **Select**: Map display mode selection
+- **Sensors**: Home district, temperature, and 6 system diagnostic sensors
 
 Find all entities in **Settings** → **Devices & Services** → **JAAM** → click on the device.
 
 ## Available Entities
 
-### Sensors
-
-- **Air Quality Index (AQI)**: Real-time air quality measurement (0-500 scale)
-  - Includes air quality category (Good/Moderate/Unhealthy/etc.)
-  - Health recommendations based on current AQI
-- **PM2.5**: Fine particulate matter concentration in µg/m³
-- **Filter Life Remaining** (Diagnostic): Shows remaining filter life as percentage
-- **Total Runtime** (Diagnostic): Total operating hours of the device
-
 ### Binary Sensors
 
-- **API Connection**: Shows whether the connection to the API is active
-  - On: Connected and receiving data
-  - Off: Connection lost or authentication failed
-  - Shows update interval and API endpoint information
-- **Filter Replacement Needed**: Alerts when filter needs replacement
-  - Shows estimated days remaining
-  - Turns on when filter life is low
+#### WebSocket Status (Diagnostic)
+- Shows real-time WebSocket connection status
+- **On**: Connected and receiving updates
+- **Off**: Connection lost or device offline
 
-### Switches
+#### Alert Sensors
+11 separate binary sensors for different threat types (updated in real-time):
 
-- **Child Lock**: Prevents accidental button presses on the device
-  - Icon changes based on state (locked/unlocked)
-- **LED Display**: Enable/disable the LED display
-  - Disabled by default - enable in entity settings if needed
+- **Air Alert**: General air raid alert
+- **Artillery**: Artillery threat alert
+- **Urban Combat**: Urban combat operations alert
+- **Chemical**: Chemical hazard alert
+- **Nuclear**: Nuclear threat alert
+- **Drones**: Drone attack alert
+- **Missiles**: Missile threat alert
+- **KAB (Air Bombs)**: Guided air bomb alert
+- **Ballistic Missiles**: Ballistic missile alert
+- **Explosion Hazard**: Explosion danger alert
+- **Reconnaissance**: Reconnaissance drone alert
+
+Each alert sensor:
+- Shows active state (On/Off)
+- Dynamic icon based on alert state
+- Can be used in automations for notifications
+
+### Light
+
+- **Lamp**: Control integrated lamp
+  - Turn on/off
+  - Adjust brightness
+  - Change color (if supported)
 
 ### Select
 
-- **Fan Speed**: Choose from Low, Medium, High, or Auto
-  - Icon changes dynamically based on selected speed
-  - Auto mode adjusts speed based on air quality
-  - Syncs bidirectionally with the Air Purifier fan entity
+- **Map Mode**: Choose map visualization mode
+  - Different display options for the device map
+  - Real-time sync with device
 
-### Number
+### Sensors
 
-- **Target Humidity**: Set desired humidity level (30-80%)
-  - Adjustable in 5% increments
-  - Displayed as a slider in the UI
+#### Location & Temperature
 
-### Button
+- **Home District**: Current home district/region name
+  - Updates when location changes
+- **Home District Temperature**: Temperature in your district (°C)
+  - Real-time temperature monitoring
 
-- **Reset Filter Timer**: Reset the filter life to 100%
-  - Press to reset after replacing the filter
-  - Instantly updates the Filter Life Remaining sensor
+#### System Diagnostics (All Diagnostic Category)
 
-### Fan
-
-- **Air Purifier**: Control the air purifier fan speed and power
-  - Three speed levels: Low, Medium, High
-  - Syncs bidirectionally with the Fan Speed select entity
-  - Turn on/off functionality
-
-## Custom Services
-
-The integration provides services for advanced automation:
-
-### `jaam_ha.example_action`
-
-Perform a custom action (customize this for your needs).
-
-**Example:**
-
-```yaml
-service: jaam_ha.example_action
-data:
-  # Add your parameters here
-```
-
-### `jaam_ha.reload_data`
-
-Manually refresh data from the API without waiting for the update interval.
-
-**Example:**
-
-```yaml
-service: jaam_ha.reload_data
-```
-
-Use these services in automations or scripts for more control.
+- **Used Memory**: Current memory usage (MB)
+  - Monitor device memory consumption
+- **System Uptime**: How long the system has been running
+  - Reset after device reboot
+- **WiFi Uptime**: WiFi connection uptime
+  - Shows WiFi connection stability
+- **WiFi Signal**: WiFi signal strength (dBm or %)
+  - Monitor connection quality
+- **CPU Temperature**: Device CPU temperature (°C)
+  - Monitor device thermal status
+- **WebSocket Uptime**: WebSocket connection uptime
+  - How long current WebSocket session is active
 
 ## Configuration Options
 
 ### During Setup
 
-Name | Required | Description
--- | -- | --
-Username | Yes | Your account username
-Password | Yes | Your account password
+Name | Required | Default | Description
+-- | -- | -- | --
+Host | Yes | - | Device IP address or hostname
+Port | No | 81 | WebSocket port number
 
-### After Setup (Options)
+### Reconfiguration
 
-You can change these anytime by clicking **Configure**:
+You can change connection settings anytime:
 
-Name | Default | Description
--- | -- | --
-Update Interval | 1 hour | How often to refresh data
-Enable Debugging | Off | Enable extra debug logging
+1. Go to **Settings** → **Devices & Services**
+2. Find **JAAM**
+3. Click **3 dots menu** → **Reconfigure**
+4. Update host/port
+5. Submit
 
 ## Troubleshooting
 
-### Authentication Issues
+### Connection Issues
 
-#### Reauthentication
+#### WebSocket Connection Status
 
-If your credentials expire or change, Home Assistant will automatically prompt you to reauthenticate:
+Monitor your connection status with the **WebSocket Status** binary sensor:
 
-1. Go to **Settings** → **Devices & Services**
-2. Look for **"Action Required"** or **"Configuration Required"** message on the integration
-3. Click **"Reconfigure"** or follow the prompt
-4. Enter your updated credentials
-5. Click Submit
+- **On** (Connected): Integration is receiving real-time updates
+- **Off** (Disconnected): Connection lost or device offline
+  - Check the binary sensor attributes for diagnostic information
+  - Verify device is powered on and connected to network
+  - Check host/port settings are correct
+  - Check network connectivity
 
-The integration will automatically resume normal operation with the new credentials.
+#### Reconfigure Connection
 
-#### Manual Credential Update
-
-You can also update credentials at any time without waiting for an error:
+If your device IP or port changes:
 
 1. Go to **Settings** → **Devices & Services**
 2. Find **JAAM**
 3. Click the **3 dots menu** → **Reconfigure**
-4. Enter new username/password
+4. Enter new host/port
 5. Click Submit
 
-#### Connection Status
-
-Monitor your connection status with the **API Connection** binary sensor:
-
-- **On** (Connected): Integration is receiving data normally
-- **Off** (Disconnected): Connection lost or authentication failed
-  - Check the binary sensor attributes for diagnostic information
-  - Verify credentials if authentication failed
-  - Check network connectivity
+The integration will automatically reconnect with the new settings.
 
 ### Enable Debug Logging
 
@@ -276,23 +236,25 @@ logger:
 
 ### Common Issues
 
-#### Authentication Errors
-
-If you receive authentication errors:
-
-1. Verify your username and password are correct
-2. Check that your account has the necessary permissions
-3. Wait for the automatic reauthentication prompt, or manually reconfigure
-4. Check the API Connection binary sensor for status
-
 #### Device Not Responding
 
 If your device is not responding:
 
-1. Check the **API Connection** binary sensor - it should be "On"
-2. Check your network connection
-3. Verify the device is powered on
-4. Check the integration diagnostics (Settings → Devices & Services → **JAAM** → 3 dots → Download diagnostics)
+1. Check the **WebSocket Status** binary sensor - it should be "On"
+2. Verify device IP address is correct (try pinging the device)
+3. Verify port 81 is accessible (or your configured port)
+4. Check your network connection - device and Home Assistant on same network?
+5. Verify the device is powered on
+6. Check the integration diagnostics (Settings → Devices & Services → **JAAM** → 3 dots → Download diagnostics)
+
+#### Alert Sensors Not Updating
+
+If alert sensors are not showing correct states:
+
+1. Check **WebSocket Status** is "On" (connection required for real-time updates)
+2. Verify device is receiving alert data from server
+3. Check system diagnostic sensors are updating (proves WebSocket is working)
+4. Enable debug logging (see below) and check for error messages
 
 ## 🤝 Contributing
 
