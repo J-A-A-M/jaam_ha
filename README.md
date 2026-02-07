@@ -5,7 +5,6 @@
 [![License][license-shield]](LICENSE)
 
 [![hacs][hacsbadge]][hacs]
-![Project Maintenance][maintenance-shield]
 
 <!--
 Uncomment and customize these badges if you want to use them:
@@ -326,10 +325,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 [hacs]: https://github.com/hacs/integration
 [hacsbadge]: https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge
 [license-shield]: https://img.shields.io/github/license/J-A-A-M/jaam_ha.svg?style=for-the-badge
-[maintenance-shield]: https://img.shields.io/badge/maintainer-%40J-A-A-M-blue.svg?style=for-the-badge
 [releases-shield]: https://img.shields.io/github/release/J-A-A-M/jaam_ha.svg?style=for-the-badge
 [releases]: https://github.com/J-A-A-M/jaam_ha/releases
-[user_profile]: https://github.com/jpawlowski
+[user_profile]: https://github.com/J-A-A-M
 
 <!-- Optional badge definitions - uncomment if needed:
 [buymecoffee]: https://www.buymeacoffee.com/jpawlowski
