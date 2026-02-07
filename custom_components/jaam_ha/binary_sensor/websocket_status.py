@@ -10,6 +10,7 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
     BinarySensorEntityDescription,
 )
+from homeassistant.const import EntityCategory
 
 if TYPE_CHECKING:
     from custom_components.jaam_ha.coordinator import JaamHADataUpdateCoordinator
@@ -19,6 +20,7 @@ ENTITY_DESCRIPTIONS = (
         key="websocket_status",
         translation_key="websocket_status",
         device_class=BinarySensorDeviceClass.CONNECTIVITY,
+        entity_category=EntityCategory.DIAGNOSTIC,
         has_entity_name=True,
     ),
 )
