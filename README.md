@@ -45,7 +45,7 @@ Platform | Description
 
 Click the button below to open the integration directly in HACS:
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=jpawlowski&repository=jaam_ha&category=integration)
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=J-A-A-M&repository=jaam_ha&category=integration)
 
 Then:
 
@@ -328,10 +328,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 [releases-shield]: https://img.shields.io/github/release/J-A-A-M/jaam_ha.svg?style=for-the-badge
 [releases]: https://github.com/J-A-A-M/jaam_ha/releases
 [user_profile]: https://github.com/J-A-A-M
-
-<!-- Optional badge definitions - uncomment if needed:
-[buymecoffee]: https://www.buymeacoffee.com/jpawlowski
-[buymecoffeebadge]: https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow.svg?style=for-the-badge
-[discord]: https://discord.gg/Qa5fW2R
-[discord-shield]: https://img.shields.io/discord/330944238910963714.svg?style=for-the-badge
--->
