@@ -126,10 +126,10 @@ class JaamHADataUpdateCoordinator(DataUpdateCoordinator[JaamHADeviceData]):
                 new_name,
             )
 
-            # Update device name if it changed
+            # Update device model if it changed
             if new_name and old_name != new_name:
-                LOGGER.info("Device name changed from '%s' to '%s'", old_name, new_name)
-                self._update_device_name(new_name)
+                LOGGER.info("Device model changed from '%s' to '%s'", old_name, new_name)
+                self._update_device_model(new_name)
 
             # Cache new value for next comparison
             self._cached_device_name = new_name
@@ -162,12 +162,12 @@ class JaamHADataUpdateCoordinator(DataUpdateCoordinator[JaamHADeviceData]):
             LOGGER.info("WebSocket connected")
             # On reconnection, entities will be marked available on next data update
 
-    def _update_device_name(self, new_name: str) -> None:
+    def _update_device_model(self, new_model: str) -> None:
         """
-        Update device name in device registry.
+        Update device model in device registry.
 
         Args:
-            new_name: New device name from device.
+            new_model: New device model from device.
 
         """
         device_reg = dr.async_get(self.hass)
@@ -180,9 +180,9 @@ class JaamHADataUpdateCoordinator(DataUpdateCoordinator[JaamHADeviceData]):
         if device:
             device_reg.async_update_device(
                 device.id,
-                name=new_name,
+                model=new_model,
             )
-            LOGGER.info("Updated device name to '%s' in device registry", new_name)
+            LOGGER.info("Updated device model to '%s' in device registry", new_model)
         else:
             LOGGER.warning("Device not found in registry for identifier: %s", device_identifier)
 
