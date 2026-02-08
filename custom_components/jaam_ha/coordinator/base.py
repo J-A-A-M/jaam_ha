@@ -12,10 +12,16 @@ https://developers.home-assistant.io/docs/integration_fetching_data#coordinated-
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+import asyncio
+import contextlib
+from typing import TYPE_CHECKING, Any
+
+from zeroconf import ServiceStateChange
+from zeroconf.asyncio import AsyncServiceBrowser, AsyncServiceInfo
 
 from custom_components.jaam_ha.api import JaamHAApiClientAuthenticationError, JaamHAApiClientError, JaamHADeviceData
 from custom_components.jaam_ha.const import LOGGER
+from homeassistant.components import zeroconf
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -48,6 +54,7 @@ class JaamHADataUpdateCoordinator(DataUpdateCoordinator[JaamHADeviceData]):
     """
 
     config_entry: JaamHAConfigEntry
+    _unavailable_timer_task: asyncio.Task | None = None
 
     async def _async_setup(self) -> None:
         """
@@ -93,6 +100,10 @@ class JaamHADataUpdateCoordinator(DataUpdateCoordinator[JaamHADeviceData]):
                 translation_domain="jaam_ha",
                 translation_key="connection_failed",
             ) from exception
+
+        # Set up zeroconf listener for instant reconnect after successful connection
+        # (now we have chip_id from the device)
+        self._setup_zeroconf_listener()
 
         LOGGER.debug("Coordinator setup complete for %s", self.config_entry.entry_id)
 
@@ -142,7 +153,8 @@ class JaamHADataUpdateCoordinator(DataUpdateCoordinator[JaamHADeviceData]):
         Handle WebSocket connection status changes.
 
         This callback is invoked by the API client when the WebSocket connection
-        status changes. When disconnected, it marks all entities as unavailable.
+        status changes. When disconnected, it waits 15 seconds before marking
+        entities as unavailable (grace period for quick reconnects).
         When reconnected, entities will become available on the next data update.
 
         Args:
@@ -150,7 +162,35 @@ class JaamHADataUpdateCoordinator(DataUpdateCoordinator[JaamHADeviceData]):
 
         """
         if not connected:
-            LOGGER.warning("WebSocket disconnected - marking entities as unavailable")
+            LOGGER.warning("WebSocket disconnected - waiting 15 seconds before marking unavailable")
+
+            # Start timer to mark entities unavailable after grace period
+            if self._unavailable_timer_task and not self._unavailable_timer_task.done():
+                # Timer already running, don't start another one
+                return
+
+            self._unavailable_timer_task = asyncio.create_task(self._mark_unavailable_after_timeout())
+        else:
+            LOGGER.info("WebSocket connected")
+
+            # Cancel unavailable timer if connection restored during grace period
+            if self._unavailable_timer_task and not self._unavailable_timer_task.done():
+                LOGGER.info("Connection restored during grace period - cancelling unavailable timer")
+                self._unavailable_timer_task.cancel()
+                self._unavailable_timer_task = None
+
+            # On reconnection, entities will be marked available on next data update
+
+    async def _mark_unavailable_after_timeout(self) -> None:
+        """
+        Wait 15 seconds and then mark all entities as unavailable.
+
+        This provides a grace period for quick reconnects without showing
+        unavailable status to the user.
+        """
+        try:
+            await asyncio.sleep(15)
+            LOGGER.warning("Grace period expired - marking entities as unavailable")
             # Mark coordinator as having an error, which makes all entities unavailable
             self.async_set_update_error(
                 UpdateFailed(
@@ -158,9 +198,8 @@ class JaamHADataUpdateCoordinator(DataUpdateCoordinator[JaamHADeviceData]):
                     translation_key="connection_lost",
                 )
             )
-        else:
-            LOGGER.info("WebSocket connected")
-            # On reconnection, entities will be marked available on next data update
+        except asyncio.CancelledError:
+            LOGGER.debug("Unavailable timer cancelled - connection restored")
 
     def _update_device_model(self, new_model: str) -> None:
         """
@@ -202,10 +241,21 @@ class JaamHADataUpdateCoordinator(DataUpdateCoordinator[JaamHADeviceData]):
             ConfigEntryAuthFailed: If authentication fails, triggers reauthentication.
             UpdateFailed: If data fetching fails for other reasons.
         """
+        client = self.config_entry.runtime_data.client
+
+        # Skip update if client is disconnected (during reconnect attempts)
+        # This avoids noisy error logs during normal reconnection flow
+        if not client.connected:
+            LOGGER.debug("Skipping data update - client not connected (reconnecting)")
+            raise UpdateFailed(
+                translation_domain="jaam_ha",
+                translation_key="connection_lost",
+            )
+
         try:
             # For WebSocket, just return current data (updated in real-time)
             # This refresh mainly serves as a connection health check
-            data = await self.config_entry.runtime_data.client.async_get_data()
+            data = await client.async_get_data()
             LOGGER.debug("Data refresh - chip_id: %s", data.get("chip_id"))
         except JaamHAApiClientAuthenticationError as exception:
             LOGGER.warning("Authentication error - %s", exception)
@@ -222,6 +272,91 @@ class JaamHADataUpdateCoordinator(DataUpdateCoordinator[JaamHADeviceData]):
         else:
             return data
 
+    def _setup_zeroconf_listener(self) -> None:
+        """
+        Set up zeroconf listener for instant reconnect.
+
+        Listens for zeroconf service updates and triggers immediate reconnect
+        when our device is discovered, bypassing the adaptive backoff delay.
+        """
+        # Get chip_id from client data (available after successful connection)
+        client = self.config_entry.runtime_data.client
+        chip_id = client.data.get("chip_id") if client.data else None
+
+        if not chip_id:
+            LOGGER.warning("Cannot setup zeroconf listener: chip_id not available")
+            return
+
+        def zeroconf_service_update(
+            zeroconf_instance: Any,
+            service_type: str,
+            name: str,
+            state_change: ServiceStateChange,
+        ) -> None:
+            """Handle zeroconf service updates (sync wrapper)."""
+            if state_change not in (ServiceStateChange.Added, ServiceStateChange.Updated):
+                return
+
+            # Schedule async handler
+            self.hass.async_create_task(self._handle_zeroconf_update(zeroconf_instance, service_type, name, chip_id))
+
+        # Subscribe to zeroconf service updates for JAAM devices using AsyncServiceBrowser
+        async def setup_browser() -> None:
+            """Set up service browser."""
+            aiozc = await zeroconf.async_get_async_instance(self.hass)
+            browser = AsyncServiceBrowser(
+                aiozc.zeroconf,
+                "_jaam-ws._tcp.local.",
+                handlers=[zeroconf_service_update],
+            )
+            # Store browser for cleanup
+            self.config_entry.async_on_unload(browser.async_cancel)
+            LOGGER.debug("Set up zeroconf listener for chip_id: %s", chip_id)
+
+        # Schedule browser setup
+        self.hass.async_create_task(setup_browser())
+
+    async def _handle_zeroconf_update(
+        self,
+        zeroconf_instance: Any,
+        service_type: str,
+        name: str,
+        expected_chip_id: str,
+    ) -> None:
+        """
+        Handle async zeroconf service update.
+
+        Args:
+            zeroconf_instance: Zeroconf instance.
+            service_type: Service type.
+            name: Service name.
+            expected_chip_id: Expected chip_id to match.
+
+        """
+        # Get service info to check chip_id
+        info = AsyncServiceInfo(service_type, name)
+        if not await info.async_request(zeroconf_instance, 3000):
+            return
+
+        # Check if this is our device by comparing chip_id
+        discovered_chip_id_raw = info.properties.get(b"chipId") or info.properties.get(b"chip_id")
+        if not discovered_chip_id_raw:
+            return
+
+        discovered_chip_id = (
+            discovered_chip_id_raw.decode() if isinstance(discovered_chip_id_raw, bytes) else discovered_chip_id_raw
+        )
+
+        if str(discovered_chip_id) == str(expected_chip_id):
+            LOGGER.info(
+                "Zeroconf detected our device %s is back online at %s:%s, triggering immediate reconnect",
+                expected_chip_id,
+                info.server,
+                info.port,
+            )
+            # Trigger immediate reconnect in client
+            await self.config_entry.runtime_data.client.async_trigger_reconnect()
+
     async def async_shutdown(self) -> None:
         """
         Shut down the coordinator.
@@ -229,6 +364,12 @@ class JaamHADataUpdateCoordinator(DataUpdateCoordinator[JaamHADeviceData]):
         Called when the integration is being unloaded. Closes the WebSocket
         connection and performs cleanup.
         """
+        # Cancel unavailable timer if running
+        if self._unavailable_timer_task and not self._unavailable_timer_task.done():
+            self._unavailable_timer_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._unavailable_timer_task
+
         await super().async_shutdown()
         await self.config_entry.runtime_data.client.async_disconnect()
         LOGGER.debug("Coordinator shutdown complete for %s", self.config_entry.entry_id)

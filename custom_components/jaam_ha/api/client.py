@@ -212,6 +212,88 @@ class JaamHAApiClient:
         self._listen_task = None
         self._reconnect_task = None
 
+    async def async_trigger_reconnect(self) -> None:
+        """
+        Trigger immediate reconnection attempt.
+
+        Cancels any ongoing backoff wait and attempts to reconnect immediately.
+        This is useful when external discovery (e.g., zeroconf) detects that
+        the device is back online.
+        """
+        if not self._should_reconnect:
+            LOGGER.debug("Reconnect triggered but automatic reconnection is disabled")
+            return
+
+        if self.connected:
+            LOGGER.debug("Already connected, ignoring reconnect trigger")
+            return
+
+        LOGGER.info("Triggered immediate reconnection attempt (skipping backoff)")
+
+        # Cancel current reconnect task if it's waiting
+        if self._reconnect_task and not self._reconnect_task.done():
+            self._reconnect_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._reconnect_task
+
+        # Start new reconnect task immediately
+        self._reconnect_task = asyncio.create_task(self._immediate_reconnect())
+
+    async def _immediate_reconnect(self) -> None:
+        """Attempt immediate reconnection without backoff."""
+        try:
+            url = f"ws://{self._host}:{self._port}"
+            LOGGER.info("Attempting immediate reconnection to %s", url)
+
+            async with asyncio.timeout(10):
+                self._ws = await self._session.ws_connect(
+                    url,
+                    heartbeat=30,
+                    compress=15,
+                )
+
+            self._connected = True
+            LOGGER.info("Immediate reconnection successful")
+
+            # Notify coordinator of reconnection
+            if self._connection_callback:
+                self._connection_callback(True)
+
+            # Wait for initial_state message and update data
+            try:
+                initial_data = await self._wait_for_initial_state()
+                LOGGER.info(
+                    "Received initial state after immediate reconnection - chip_id: %s",
+                    initial_data.get("chip_id"),
+                )
+
+                # Notify coordinator of new data
+                if self._update_callback:
+                    self._update_callback(initial_data)
+
+            except (JaamHAApiClientError, TimeoutError, json.JSONDecodeError) as exc:
+                LOGGER.error("Failed to get initial state after immediate reconnection: %s", exc)
+                # Connection established but failed to get state, close and resume normal reconnect
+                if self._ws and not self._ws.closed:
+                    await self._ws.close()
+                    self._connected = False
+                # Resume normal reconnect loop
+                if self._should_reconnect:
+                    self._reconnect_task = asyncio.create_task(self._reconnect_loop())
+                return
+
+            # Start listening again
+            self._listen_task = asyncio.create_task(self._listen())
+            LOGGER.debug("Restarted listener task after immediate reconnection")
+
+        except asyncio.CancelledError:
+            LOGGER.debug("Immediate reconnection cancelled")
+        except (TimeoutError, aiohttp.ClientError, OSError) as exc:
+            LOGGER.warning("Immediate reconnection failed: %s", exc)
+            # Resume normal reconnect loop with backoff
+            if self._should_reconnect:
+                self._reconnect_task = asyncio.create_task(self._reconnect_loop())
+
     async def _wait_for_initial_state(self) -> JaamHADeviceData:
         """
         Wait for initial_state message from device.

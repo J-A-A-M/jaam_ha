@@ -167,9 +167,34 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         # Set unique ID based on device chip_id from metadata
         await self.async_set_unique_id(str(chip_id))
-        self._abort_if_unique_id_configured(
-            updates={CONF_HOST: host, CONF_PORT: port},
-        )
+
+        # Check if device is already configured
+        # If so, update connection details and trigger reload to reconnect
+        for entry in self._async_current_entries():
+            if entry.unique_id == str(chip_id):
+                # Device already configured - check if connection details changed
+                if entry.data.get(CONF_HOST) != host or entry.data.get(CONF_PORT) != port:
+                    LOGGER.info(
+                        "Zeroconf detected device %s at new address: %s:%s -> %s:%s, reloading entry",
+                        chip_id,
+                        entry.data.get(CONF_HOST),
+                        entry.data.get(CONF_PORT),
+                        host,
+                        port,
+                    )
+                    self.hass.config_entries.async_update_entry(
+                        entry,
+                        data={**entry.data, CONF_HOST: host, CONF_PORT: port},
+                    )
+                    # Reload entry to reconnect with new address
+                    self.hass.async_create_task(self.hass.config_entries.async_reload(entry.entry_id))
+                else:
+                    LOGGER.debug(
+                        "Zeroconf detected already configured device %s with same connection details",
+                        chip_id,
+                    )
+
+                return self.async_abort(reason="already_configured")
 
         # Store discovery info for confirmation step
         # Use device_name from TXT if available, otherwise fallback to chip_id
