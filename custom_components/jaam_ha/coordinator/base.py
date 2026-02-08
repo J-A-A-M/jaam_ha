@@ -55,6 +55,8 @@ class JaamHADataUpdateCoordinator(DataUpdateCoordinator[JaamHADeviceData]):
 
     config_entry: JaamHAConfigEntry
     _unavailable_timer_task: asyncio.Task | None = None
+    _zeroconf_browser: AsyncServiceBrowser | None = None
+    _zeroconf_setup_done: bool = False
 
     async def _async_setup(self) -> None:
         """
@@ -69,6 +71,18 @@ class JaamHADataUpdateCoordinator(DataUpdateCoordinator[JaamHADeviceData]):
         This runs before the first data fetch, ensuring any required setup
         is complete before entities start requesting data.
         """
+        LOGGER.debug("_async_setup called for entry %s", self.config_entry.entry_id)
+
+        # Set up zeroconf listener FIRST (before connection attempt)
+        # This allows instant reconnect even if initial connection fails
+        # Use unique_id from config entry (which is the chip_id)
+        chip_id = self.config_entry.unique_id
+        if chip_id:
+            LOGGER.debug("Calling _setup_zeroconf_listener with chip_id: %s", chip_id)
+            await self._setup_zeroconf_listener(chip_id)
+        else:
+            LOGGER.warning("No unique_id in config entry - zeroconf listener not set up")
+
         client = self.config_entry.runtime_data.client
 
         # Set up callback for real-time updates from WebSocket
@@ -100,10 +114,6 @@ class JaamHADataUpdateCoordinator(DataUpdateCoordinator[JaamHADeviceData]):
                 translation_domain="jaam_ha",
                 translation_key="connection_failed",
             ) from exception
-
-        # Set up zeroconf listener for instant reconnect after successful connection
-        # (now we have chip_id from the device)
-        self._setup_zeroconf_listener()
 
         LOGGER.debug("Coordinator setup complete for %s", self.config_entry.entry_id)
 
@@ -272,23 +282,26 @@ class JaamHADataUpdateCoordinator(DataUpdateCoordinator[JaamHADeviceData]):
         else:
             return data
 
-    def _setup_zeroconf_listener(self) -> None:
+    async def _setup_zeroconf_listener(self, chip_id: str) -> None:
         """
         Set up zeroconf listener for instant reconnect.
 
         Listens for zeroconf service updates and triggers immediate reconnect
         when our device is discovered, bypassing the adaptive backoff delay.
-        """
-        # Get chip_id from client data (available after successful connection)
-        client = self.config_entry.runtime_data.client
-        chip_id = client.data.get("chip_id") if client.data else None
 
-        if not chip_id:
-            LOGGER.warning("Cannot setup zeroconf listener: chip_id not available")
+        Args:
+            chip_id: Device chip ID for matching zeroconf announcements.
+
+        """
+        # Only set up once
+        if self._zeroconf_setup_done:
             return
 
+        LOGGER.debug("Setting up zeroconf listener for chip_id: %s", chip_id)
+
         def zeroconf_service_update(
-            zeroconf_instance: Any,
+            *,
+            zeroconf: Any,
             service_type: str,
             name: str,
             state_change: ServiceStateChange,
@@ -298,23 +311,22 @@ class JaamHADataUpdateCoordinator(DataUpdateCoordinator[JaamHADeviceData]):
                 return
 
             # Schedule async handler
-            self.hass.async_create_task(self._handle_zeroconf_update(zeroconf_instance, service_type, name, chip_id))
+            self.hass.async_create_task(self._handle_zeroconf_update(zeroconf, service_type, name, chip_id))
 
-        # Subscribe to zeroconf service updates for JAAM devices using AsyncServiceBrowser
-        async def setup_browser() -> None:
-            """Set up service browser."""
-            aiozc = await zeroconf.async_get_async_instance(self.hass)
-            browser = AsyncServiceBrowser(
-                aiozc.zeroconf,
-                "_jaam-ws._tcp.local.",
-                handlers=[zeroconf_service_update],
-            )
-            # Store browser for cleanup
-            self.config_entry.async_on_unload(browser.async_cancel)
-            LOGGER.debug("Set up zeroconf listener for chip_id: %s", chip_id)
+        # Get aiozeroconf instance from Home Assistant (async operation)
+        aiozc = await zeroconf.async_get_async_instance(self.hass)
 
-        # Schedule browser setup
-        self.hass.async_create_task(setup_browser())
+        # Create service browser
+        self._zeroconf_browser = AsyncServiceBrowser(
+            aiozc.zeroconf,
+            "_jaam-ws._tcp.local.",
+            handlers=[zeroconf_service_update],
+        )
+
+        # Register cleanup callback
+        self.config_entry.async_on_unload(self._zeroconf_browser.async_cancel)
+        self._zeroconf_setup_done = True
+        LOGGER.debug("Zeroconf listener active for chip_id: %s", chip_id)
 
     async def _handle_zeroconf_update(
         self,
