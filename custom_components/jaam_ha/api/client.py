@@ -359,6 +359,9 @@ class JaamHAApiClient:
             "websocket_uptime": data.get("websocket_uptime"),
             "lamp_color": lamp_data.get("color"),
             "lamp_brightness": lamp_data.get("brightness"),
+            "climate_temp": data.get("climate_temp"),
+            "climate_humidity": data.get("climate_humidity"),
+            "climate_pressure": data.get("climate_pressure"),
         }
 
         LOGGER.info(
@@ -558,6 +561,18 @@ class JaamHAApiClient:
                 if self._data:
                     self._data["home_district_temp"] = data.get("home_district_temp")
                     LOGGER.debug("Updated home_district_temp: %s", self._data.get("home_district_temp"))
+
+            elif msg_type == "climate_data_change":
+                if self._data:
+                    self._data["climate_temp"] = data.get("climate_temp")
+                    self._data["climate_humidity"] = data.get("climate_humidity")
+                    self._data["climate_pressure"] = data.get("climate_pressure")
+                    LOGGER.debug(
+                        "Updated climate data: temp=%s, humidity=%s, pressure=%s",
+                        self._data.get("climate_temp"),
+                        self._data.get("climate_humidity"),
+                        self._data.get("climate_pressure"),
+                    )
 
             # Notify coordinator of data update
             if self._update_callback and self._data:

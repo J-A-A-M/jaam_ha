@@ -21,7 +21,7 @@ ENTITY_DESCRIPTIONS = (
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=1,
         has_entity_name=True,
-        icon="mdi:thermometer",
+        icon="mdi:home-thermometer",
     ),
 )
 
