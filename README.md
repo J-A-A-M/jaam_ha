@@ -24,6 +24,7 @@ Uncomment and customize these badges if you want to use them:
 - **Real-time Monitoring**: WebSocket connection for instant updates
 - **Alert System**: 11 separate binary sensors for different threat types
 - **Location Info**: Track home district name and temperature
+- **Room Climate**: Monitor room temperature, humidity, and pressure (mmHg)
 - **System Diagnostics**: Monitor device health (memory, uptime, WiFi signal, CPU temperature)
 - **Smart Light Control**: Control integrated lamp with brightness and color
 - **Map Display**: Select different map visualization modes
@@ -36,7 +37,7 @@ Platform | Description
 `binary_sensor` | WebSocket connection status and 11 alert type sensors
 `light` | Lamp control with brightness and color
 `select` | Map mode selection
-`sensor` | Home district, temperature, and system diagnostics (6 sensors)
+`sensor` | Home district, district temperature, room climate (temperature, humidity, pressure), and system diagnostics
 
 ## 🚀 Quick Start
 
@@ -166,14 +167,22 @@ Each alert sensor:
   - Different display options for the device map
   - Real-time sync with device
 
+
 ### Sensors
 
-#### Location & Temperature
+#### Location & District Temperature
 
 - **Home District**: Current home district/region name
   - Updates when location changes
 - **Home District Temperature**: Temperature in your district (°C)
   - Real-time temperature monitoring
+
+#### Room Climate (if device provides data)
+
+- **Room Temperature**: Room temperature (°C)
+- **Room Humidity**: Room humidity (%)
+- **Room Pressure**: Room pressure (mmHg)
+  - All values update in real-time if available from device
 
 #### System Diagnostics (All Diagnostic Category)
 
