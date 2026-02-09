@@ -33,7 +33,7 @@ ENTITY_DESCRIPTIONS = (
     SensorEntityDescription(
         key="uptime",
         translation_key="uptime",
-        native_unit_of_measurement=UnitOfTime.MINUTES,
+        native_unit_of_measurement=UnitOfTime.SECONDS,
         device_class=SensorDeviceClass.DURATION,
         state_class=SensorStateClass.TOTAL_INCREASING,
         entity_category=EntityCategory.DIAGNOSTIC,
@@ -44,7 +44,7 @@ ENTITY_DESCRIPTIONS = (
     SensorEntityDescription(
         key="wifi_uptime",
         translation_key="wifi_uptime",
-        native_unit_of_measurement=UnitOfTime.MINUTES,
+        native_unit_of_measurement=UnitOfTime.SECONDS,
         device_class=SensorDeviceClass.DURATION,
         state_class=SensorStateClass.TOTAL_INCREASING,
         entity_category=EntityCategory.DIAGNOSTIC,
@@ -76,7 +76,7 @@ ENTITY_DESCRIPTIONS = (
     SensorEntityDescription(
         key="websocket_uptime",
         translation_key="websocket_uptime",
-        native_unit_of_measurement=UnitOfTime.MINUTES,
+        native_unit_of_measurement=UnitOfTime.SECONDS,
         device_class=SensorDeviceClass.DURATION,
         state_class=SensorStateClass.TOTAL_INCREASING,
         entity_category=EntityCategory.DIAGNOSTIC,
