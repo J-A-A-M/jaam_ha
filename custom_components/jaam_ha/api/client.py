@@ -96,6 +96,7 @@ class JaamHAApiClient:
         self._connected = False
         self._should_reconnect = True
         self._reconnect_task: asyncio.Task | None = None
+        self._connect_lock = asyncio.Lock()  # Prevent multiple concurrent connections
 
     @property
     def connected(self) -> bool:
@@ -133,6 +134,7 @@ class JaamHAApiClient:
         Connect to the JAAM device WebSocket server.
 
         Establishes WebSocket connection and waits for initial_state message.
+        Uses a lock to prevent multiple concurrent connection attempts.
 
         Returns:
             Initial device state data.
@@ -142,49 +144,61 @@ class JaamHAApiClient:
             JaamHAApiClientError: For other errors.
 
         """
-        try:
-            url = f"ws://{self._host}:{self._port}"
-            LOGGER.info("Connecting to JAAM device at %s", url)
+        async with self._connect_lock:
+            # Check if already connected
+            if self.connected:
+                LOGGER.debug("Already connected, returning existing data")
+                if self._data:
+                    return self._data
+                # Wait for initial state if connected but no data yet
+                return await self._wait_for_initial_state()
 
-            async with asyncio.timeout(10):
-                self._ws = await self._session.ws_connect(
-                    url,
-                    heartbeat=30,
-                    compress=15,
-                )
+            # Close any existing connection before creating new one
+            await self._close_existing_connection()
 
-            self._connected = True
-            LOGGER.debug("WebSocket connected successfully")
+            try:
+                url = f"ws://{self._host}:{self._port}"
+                LOGGER.info("Connecting to JAAM device at %s", url)
 
-            # Notify coordinator of connection
-            if self._connection_callback:
-                self._connection_callback(True)
+                async with asyncio.timeout(10):
+                    self._ws = await self._session.ws_connect(
+                        url,
+                        heartbeat=30,
+                        compress=15,
+                    )
 
-            # Wait for initial_state message
-            initial_data = await self._wait_for_initial_state()
-            LOGGER.info("Received initial state - chip_id: %s", initial_data.get("chip_id"))
+                self._connected = True
+                LOGGER.debug("WebSocket connected successfully")
 
-            # Enable automatic reconnection
-            self._should_reconnect = True
+                # Notify coordinator of connection
+                if self._connection_callback:
+                    self._connection_callback(True)
 
-            # Start listening for updates in background
-            self._listen_task = asyncio.create_task(self._listen())
-            LOGGER.debug("Started background listener task")
+                # Wait for initial_state message
+                initial_data = await self._wait_for_initial_state()
+                LOGGER.info("Received initial state - chip_id: %s", initial_data.get("chip_id"))
 
-            return initial_data  # noqa: TRY300
+                # Enable automatic reconnection
+                self._should_reconnect = True
 
-        except TimeoutError as exception:
-            msg = f"Timeout connecting to {self._host}:{self._port}"
-            LOGGER.error(msg)
-            raise JaamHAApiClientCommunicationError(msg) from exception
-        except (aiohttp.ClientError, OSError) as exception:
-            msg = f"Error connecting to {self._host}:{self._port} - {exception}"
-            LOGGER.error(msg)
-            raise JaamHAApiClientCommunicationError(msg) from exception
-        except Exception as exception:
-            msg = f"Unexpected error connecting - {exception}"
-            LOGGER.error(msg)
-            raise JaamHAApiClientError(msg) from exception
+                # Start listening for updates in background
+                self._listen_task = asyncio.create_task(self._listen())
+                LOGGER.debug("Started background listener task")
+
+                return initial_data  # noqa: TRY300
+
+            except TimeoutError as exception:
+                msg = f"Timeout connecting to {self._host}:{self._port}"
+                LOGGER.error(msg)
+                raise JaamHAApiClientCommunicationError(msg) from exception
+            except (aiohttp.ClientError, OSError) as exception:
+                msg = f"Error connecting to {self._host}:{self._port} - {exception}"
+                LOGGER.error(msg)
+                raise JaamHAApiClientCommunicationError(msg) from exception
+            except Exception as exception:
+                msg = f"Unexpected error connecting - {exception}"
+                LOGGER.error(msg)
+                raise JaamHAApiClientError(msg) from exception
 
     async def async_disconnect(self) -> None:
         """Disconnect from the WebSocket server."""
@@ -219,6 +233,7 @@ class JaamHAApiClient:
         Cancels any ongoing backoff wait and attempts to reconnect immediately.
         This is useful when external discovery (e.g., zeroconf) detects that
         the device is back online.
+        Uses lock to prevent multiple concurrent reconnection attempts.
         """
         if not self._should_reconnect:
             LOGGER.debug("Reconnect triggered but automatic reconnection is disabled")
@@ -226,6 +241,11 @@ class JaamHAApiClient:
 
         if self.connected:
             LOGGER.debug("Already connected, ignoring reconnect trigger")
+            return
+
+        # Check if lock is already acquired (connection attempt in progress)
+        if self._connect_lock.locked():
+            LOGGER.debug("Connection attempt already in progress, ignoring reconnect trigger")
             return
 
         LOGGER.info("Triggered immediate reconnection attempt (skipping backoff)")
@@ -239,60 +259,84 @@ class JaamHAApiClient:
         # Start new reconnect task immediately
         self._reconnect_task = asyncio.create_task(self._immediate_reconnect())
 
+    async def _close_existing_connection(self) -> None:
+        """Close existing WebSocket connection and clean up tasks."""
+        # Cancel listen task
+        if self._listen_task and not self._listen_task.done():
+            self._listen_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._listen_task
+            self._listen_task = None
+
+        # Close WebSocket
+        if self._ws and not self._ws.closed:
+            await self._ws.close()
+            LOGGER.debug("Closed existing WebSocket connection")
+        self._ws = None
+
     async def _immediate_reconnect(self) -> None:
         """Attempt immediate reconnection without backoff."""
-        try:
-            url = f"ws://{self._host}:{self._port}"
-            LOGGER.info("Attempting immediate reconnection to %s", url)
-
-            async with asyncio.timeout(10):
-                self._ws = await self._session.ws_connect(
-                    url,
-                    heartbeat=30,
-                    compress=15,
-                )
-
-            self._connected = True
-            LOGGER.info("Immediate reconnection successful")
-
-            # Notify coordinator of reconnection
-            if self._connection_callback:
-                self._connection_callback(True)
-
-            # Wait for initial_state message and update data
-            try:
-                initial_data = await self._wait_for_initial_state()
-                LOGGER.info(
-                    "Received initial state after immediate reconnection - chip_id: %s",
-                    initial_data.get("chip_id"),
-                )
-
-                # Notify coordinator of new data
-                if self._update_callback:
-                    self._update_callback(initial_data)
-
-            except (JaamHAApiClientError, TimeoutError, json.JSONDecodeError) as exc:
-                LOGGER.error("Failed to get initial state after immediate reconnection: %s", exc)
-                # Connection established but failed to get state, close and resume normal reconnect
-                if self._ws and not self._ws.closed:
-                    await self._ws.close()
-                    self._connected = False
-                # Resume normal reconnect loop
-                if self._should_reconnect:
-                    self._reconnect_task = asyncio.create_task(self._reconnect_loop())
+        async with self._connect_lock:
+            # Check if already connected (another task may have connected while waiting for lock)
+            if self.connected:
+                LOGGER.debug("Already connected (by another task), skipping immediate reconnect")
                 return
 
-            # Start listening again
-            self._listen_task = asyncio.create_task(self._listen())
-            LOGGER.debug("Restarted listener task after immediate reconnection")
+            # Close any existing connection
+            await self._close_existing_connection()
 
-        except asyncio.CancelledError:
-            LOGGER.debug("Immediate reconnection cancelled")
-        except (TimeoutError, aiohttp.ClientError, OSError) as exc:
-            LOGGER.warning("Immediate reconnection failed: %s", exc)
-            # Resume normal reconnect loop with backoff
-            if self._should_reconnect:
-                self._reconnect_task = asyncio.create_task(self._reconnect_loop())
+            try:
+                url = f"ws://{self._host}:{self._port}"
+                LOGGER.info("Attempting immediate reconnection to %s", url)
+
+                async with asyncio.timeout(10):
+                    self._ws = await self._session.ws_connect(
+                        url,
+                        heartbeat=30,
+                        compress=15,
+                    )
+
+                self._connected = True
+                LOGGER.info("Immediate reconnection successful")
+
+                # Notify coordinator of reconnection
+                if self._connection_callback:
+                    self._connection_callback(True)
+
+                # Wait for initial_state message and update data
+                try:
+                    initial_data = await self._wait_for_initial_state()
+                    LOGGER.info(
+                        "Received initial state after immediate reconnection - chip_id: %s",
+                        initial_data.get("chip_id"),
+                    )
+
+                    # Notify coordinator of new data
+                    if self._update_callback:
+                        self._update_callback(initial_data)
+
+                except (JaamHAApiClientError, TimeoutError, json.JSONDecodeError) as exc:
+                    LOGGER.error("Failed to get initial state after immediate reconnection: %s", exc)
+                    # Connection established but failed to get state, close and resume normal reconnect
+                    if self._ws and not self._ws.closed:
+                        await self._ws.close()
+                        self._connected = False
+                    # Resume normal reconnect loop
+                    if self._should_reconnect:
+                        self._reconnect_task = asyncio.create_task(self._reconnect_loop())
+                    return
+
+                # Start listening again
+                self._listen_task = asyncio.create_task(self._listen())
+                LOGGER.debug("Restarted listener task after immediate reconnection")
+
+            except asyncio.CancelledError:
+                LOGGER.debug("Immediate reconnection cancelled")
+            except (TimeoutError, aiohttp.ClientError, OSError) as exc:
+                LOGGER.warning("Immediate reconnection failed: %s", exc)
+                # Resume normal reconnect loop with backoff
+                if self._should_reconnect:
+                    self._reconnect_task = asyncio.create_task(self._reconnect_loop())
 
     async def _wait_for_initial_state(self) -> JaamHADeviceData:
         """
@@ -434,47 +478,59 @@ class JaamHAApiClient:
                 if not self._should_reconnect:
                     break
 
-                # Attempt to reconnect
-                url = f"ws://{self._host}:{self._port}"
-                LOGGER.info("Attempting to reconnect to %s", url)
+                # Use lock to prevent concurrent connection attempts
+                async with self._connect_lock:
+                    # Check again after acquiring lock
+                    if self.connected:
+                        LOGGER.debug("Already connected (by another task), exiting reconnect loop")
+                        break
 
-                async with asyncio.timeout(10):
-                    self._ws = await self._session.ws_connect(
-                        url,
-                        heartbeat=30,
-                        compress=15,
-                    )
+                    # Close any existing connection
+                    await self._close_existing_connection()
 
-                self._connected = True
-                LOGGER.info("Reconnected successfully to device")
+                    # Attempt to reconnect
+                    url = f"ws://{self._host}:{self._port}"
+                    LOGGER.info("Attempting to reconnect to %s", url)
 
-                # Notify coordinator of reconnection
-                if self._connection_callback:
-                    self._connection_callback(True)
+                    async with asyncio.timeout(10):
+                        self._ws = await self._session.ws_connect(
+                            url,
+                            heartbeat=30,
+                            compress=15,
+                        )
 
-                # Wait for initial_state message and update data
-                try:
-                    initial_data = await self._wait_for_initial_state()
-                    LOGGER.info("Received initial state after reconnection - chip_id: %s", initial_data.get("chip_id"))
+                    self._connected = True
+                    LOGGER.info("Reconnected successfully to device")
 
-                    # Notify coordinator of new data
-                    if self._update_callback:
-                        self._update_callback(initial_data)
+                    # Notify coordinator of reconnection
+                    if self._connection_callback:
+                        self._connection_callback(True)
 
-                except (JaamHAApiClientError, TimeoutError, json.JSONDecodeError) as exc:
-                    LOGGER.error("Failed to get initial state after reconnection: %s", exc)
-                    # Connection established but failed to get state, close and retry
-                    if self._ws and not self._ws.closed:
-                        await self._ws.close()
-                    continue
+                    # Wait for initial_state message and update data
+                    try:
+                        initial_data = await self._wait_for_initial_state()
+                        LOGGER.info(
+                            "Received initial state after reconnection - chip_id: %s", initial_data.get("chip_id")
+                        )
 
-                # Start listening again
-                self._listen_task = asyncio.create_task(self._listen())
-                LOGGER.debug("Restarted listener task after reconnection")
+                        # Notify coordinator of new data
+                        if self._update_callback:
+                            self._update_callback(initial_data)
 
-                # Reset attempt counter on successful reconnection
-                attempt = 0
-                break
+                    except (JaamHAApiClientError, TimeoutError, json.JSONDecodeError) as exc:
+                        LOGGER.error("Failed to get initial state after reconnection: %s", exc)
+                        # Connection established but failed to get state, close and retry
+                        if self._ws and not self._ws.closed:
+                            await self._ws.close()
+                        continue
+
+                    # Start listening again
+                    self._listen_task = asyncio.create_task(self._listen())
+                    LOGGER.debug("Restarted listener task after reconnection")
+
+                    # Reset attempt counter on successful reconnection
+                    attempt = 0
+                    break
 
             except asyncio.CancelledError:
                 LOGGER.debug("Reconnection cancelled")
