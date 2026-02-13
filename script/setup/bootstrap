@@ -55,8 +55,24 @@ else
     log_info "Local development detected - using workspace venv"
 fi
 
+# Check if venv exists and is valid
+VENV_NEEDS_RECREATION=false
 if [[ ! -d "$VENV_PATH" ]]; then
+    VENV_NEEDS_RECREATION=true
     log_info "Creating virtual environment at $VENV_PATH"
+elif [[ ! -f "$VENV_PATH/bin/python3" ]] || [[ ! -x "$VENV_PATH/bin/python3" ]]; then
+    # Python symlink is missing or broken
+    VENV_NEEDS_RECREATION=true
+    log_warning "Virtual environment exists but Python interpreter is invalid - recreating"
+fi
+
+if [[ "$VENV_NEEDS_RECREATION" == "true" ]]; then
+    # Remove old venv if it exists
+    if [[ -d "$VENV_PATH" ]]; then
+        log_step "Removing invalid virtual environment"
+        rm -rf "$VENV_PATH"
+    fi
+    log_step "Creating new virtual environment"
     uv venv "$VENV_PATH"
 fi
 
