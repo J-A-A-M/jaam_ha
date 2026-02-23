@@ -10,6 +10,7 @@ from homeassistant.components.sensor import SensorEntityDescription
 from .home_climate import ENTITY_DESCRIPTIONS as HOME_CLIMATE_DESCRIPTIONS, JaamHAHomeClimateSensor
 from .home_district import ENTITY_DESCRIPTIONS as HOME_DISTRICT_DESCRIPTIONS, JaamHAHomeDistrictSensor
 from .home_district_temp import ENTITY_DESCRIPTIONS as HOME_DISTRICT_TEMP_DESCRIPTIONS, JaamHAHomeDistrictTempSensor
+from .light_level import ENTITY_DESCRIPTIONS as LIGHT_LEVEL_DESCRIPTIONS, JaamHALightLevelSensor
 from .system_info import ENTITY_DESCRIPTIONS as SYSTEM_INFO_DESCRIPTIONS, JaamHASystemInfoSensor
 
 if TYPE_CHECKING:
@@ -24,6 +25,7 @@ ENTITY_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
     *HOME_DISTRICT_TEMP_DESCRIPTIONS,
     *SYSTEM_INFO_DESCRIPTIONS,
     *HOME_CLIMATE_DESCRIPTIONS,
+    *LIGHT_LEVEL_DESCRIPTIONS,
 )
 
 
@@ -74,3 +76,17 @@ async def async_setup_entry(
         )
     if home_climate_entities:
         async_add_entities(home_climate_entities)
+
+    # Add light level sensor only if data is present
+    light_level_entities = []
+    for entity_description in LIGHT_LEVEL_DESCRIPTIONS:
+        if entity_description.key not in data or data[entity_description.key] is None:
+            continue
+        light_level_entities.append(
+            JaamHALightLevelSensor(
+                coordinator=coordinator,
+                entity_description=entity_description,
+            )
+        )
+    if light_level_entities:
+        async_add_entities(light_level_entities)

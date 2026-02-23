@@ -406,6 +406,7 @@ class JaamHAApiClient:
             "climate_temp": data.get("climate_temp"),
             "climate_humidity": data.get("climate_humidity"),
             "climate_pressure": data.get("climate_pressure"),
+            "light_level": data.get("light_level"),
         }
 
         LOGGER.info(
@@ -629,6 +630,11 @@ class JaamHAApiClient:
                         self._data.get("climate_humidity"),
                         self._data.get("climate_pressure"),
                     )
+
+            elif msg_type == "light_level_change":
+                if self._data:
+                    self._data["light_level"] = data.get("light_level")
+                    LOGGER.debug("Updated light_level: %s", self._data.get("light_level"))
 
             # Notify coordinator of data update
             if self._update_callback and self._data:

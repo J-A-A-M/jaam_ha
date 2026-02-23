@@ -132,6 +132,9 @@
       },
       "home_district_temp": {
         "name": "Home District Temperature"
+      },
+      "light_level": {
+        "name": "Light Level"
       }
     }
   }
