@@ -25,6 +25,8 @@ Uncomment and customize these badges if you want to use them:
 - **Alert System**: 11 separate binary sensors for different threat types
 - **Location Info**: Track home district name and temperature
 - **Room Climate**: Monitor room temperature, humidity, and pressure (mmHg)
+- **Light Level Monitoring**: Track room illuminance in lux (if sensor available)
+- **Dynamic Sensors**: Sensors auto-appear when hardware is connected, auto-hide when disconnected
 - **System Diagnostics**: Monitor device health (memory, uptime, WiFi signal, CPU temperature)
 - **Smart Light Control**: Control integrated lamp with brightness and color
 - **Map Display**: Select different map visualization modes
@@ -37,7 +39,7 @@ Platform | Description
 `binary_sensor` | WebSocket connection status and 11 alert type sensors
 `light` | Lamp control with brightness and color
 `select` | Map mode selection
-`sensor` | Home district, district temperature, room climate (temperature, humidity, pressure), and system diagnostics
+`sensor` | Home district, district temperature, room climate (temperature, humidity, pressure, light level), and system diagnostics
 
 ## 🚀 Quick Start
 
@@ -121,7 +123,7 @@ The integration creates several entities for your JAAM device:
 - **Binary Sensors**: WebSocket connection status + 11 alert type sensors
 - **Light**: Lamp control with brightness and color
 - **Select**: Map display mode selection
-- **Sensors**: Home district, temperature, and 6 system diagnostic sensors
+- **Sensors**: Home district, temperature, room climate (dynamic), and 6 system diagnostic sensors
 
 Find all entities in **Settings** → **Devices & Services** → **JAAM** → click on the device.
 
@@ -177,12 +179,17 @@ Each alert sensor:
 - **Home District Temperature**: Temperature in your district (°C)
   - Real-time temperature monitoring
 
-#### Room Climate (if device provides data)
+#### Room Climate (Dynamic - Auto-detected)
+
+> **Note**: These sensors appear automatically when the device has the corresponding hardware connected, and disappear when disconnected.
 
 - **Room Temperature**: Room temperature (°C)
 - **Room Humidity**: Room humidity (%)
 - **Room Pressure**: Room pressure (mmHg)
-  - All values update in real-time if available from device
+- **Light Level**: Room illuminance level (lux)
+  - All values update in real-time
+  - Sensors become unavailable if hardware is disconnected
+  - Sensors automatically reappear when hardware is reconnected
 
 #### System Diagnostics (All Diagnostic Category)
 
