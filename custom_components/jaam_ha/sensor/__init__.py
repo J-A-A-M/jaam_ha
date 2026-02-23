@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from custom_components.jaam_ha.const import PARALLEL_UPDATES as PARALLEL_UPDATES
+from custom_components.jaam_ha.const import LOGGER, PARALLEL_UPDATES as PARALLEL_UPDATES
 from homeassistant.components.sensor import SensorEntityDescription
 
 from .home_climate import ENTITY_DESCRIPTIONS as HOME_CLIMATE_DESCRIPTIONS, JaamHAHomeClimateSensor
@@ -28,6 +28,12 @@ ENTITY_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
     *LIGHT_LEVEL_DESCRIPTIONS,
 )
 
+# Dynamic sensor descriptions that should be created/removed based on data availability
+DYNAMIC_SENSOR_DESCRIPTIONS = {
+    **{desc.key: (desc, JaamHAHomeClimateSensor) for desc in HOME_CLIMATE_DESCRIPTIONS},
+    **{desc.key: (desc, JaamHALightLevelSensor) for desc in LIGHT_LEVEL_DESCRIPTIONS},
+}
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -35,58 +41,61 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the sensor platform."""
-    # Add home district sensor
+    coordinator = entry.runtime_data.coordinator
+
+    # Track which dynamic sensors have been created (by entity_description.key)
+    created_sensors: set[str] = set()
+
+    # Add always-available sensors (home district, system info)
     async_add_entities(
         JaamHAHomeDistrictSensor(
-            coordinator=entry.runtime_data.coordinator,
+            coordinator=coordinator,
             entity_description=entity_description,
         )
         for entity_description in HOME_DISTRICT_DESCRIPTIONS
     )
-    # Add home district temperature sensor
     async_add_entities(
         JaamHAHomeDistrictTempSensor(
-            coordinator=entry.runtime_data.coordinator,
+            coordinator=coordinator,
             entity_description=entity_description,
         )
         for entity_description in HOME_DISTRICT_TEMP_DESCRIPTIONS
     )
-
-    # Add system info sensors
     async_add_entities(
         JaamHASystemInfoSensor(
-            coordinator=entry.runtime_data.coordinator,
+            coordinator=coordinator,
             entity_description=entity_description,
         )
         for entity_description in SYSTEM_INFO_DESCRIPTIONS
     )
 
-    # Add home climate sensors only if data is present
-    coordinator = entry.runtime_data.coordinator
+    # Add initial dynamic sensors if data is already present
     data = coordinator.data or {}
-    home_climate_entities = []
-    for entity_description in HOME_CLIMATE_DESCRIPTIONS:
-        if entity_description.key not in data or data[entity_description.key] is None:
-            continue
-        home_climate_entities.append(
-            JaamHAHomeClimateSensor(
-                coordinator=coordinator,
-                entity_description=entity_description,
-            )
-        )
-    if home_climate_entities:
-        async_add_entities(home_climate_entities)
+    initial_entities = []
+    for key, (entity_description, entity_class) in DYNAMIC_SENSOR_DESCRIPTIONS.items():
+        if key in data and data[key] is not None:
+            initial_entities.append(entity_class(coordinator=coordinator, entity_description=entity_description))
+            created_sensors.add(key)
+            LOGGER.debug("Creating initial dynamic sensor: %s", key)
 
-    # Add light level sensor only if data is present
-    light_level_entities = []
-    for entity_description in LIGHT_LEVEL_DESCRIPTIONS:
-        if entity_description.key not in data or data[entity_description.key] is None:
-            continue
-        light_level_entities.append(
-            JaamHALightLevelSensor(
-                coordinator=coordinator,
-                entity_description=entity_description,
-            )
-        )
-    if light_level_entities:
-        async_add_entities(light_level_entities)
+    if initial_entities:
+        async_add_entities(initial_entities)
+
+    # Listener to dynamically add sensors when new data appears
+    def _check_and_add_sensors() -> None:
+        """Check coordinator data and add new sensors if available."""
+        data = coordinator.data or {}
+        new_entities = []
+
+        for key, (entity_description, entity_class) in DYNAMIC_SENSOR_DESCRIPTIONS.items():
+            # Check if sensor should be created
+            if key not in created_sensors and key in data and data[key] is not None:
+                new_entities.append(entity_class(coordinator=coordinator, entity_description=entity_description))
+                created_sensors.add(key)
+                LOGGER.info("Dynamically adding new sensor: %s with value %s", key, data[key])
+
+        if new_entities:
+            async_add_entities(new_entities)
+
+    # Register listener to be called on every coordinator update
+    entry.async_on_unload(coordinator.async_add_listener(_check_and_add_sensors))
