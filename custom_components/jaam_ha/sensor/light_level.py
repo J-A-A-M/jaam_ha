@@ -37,6 +37,15 @@ class JaamHALightLevelSensor(SensorEntity, JaamHAEntity):
         super().__init__(coordinator, entity_description)
 
     @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        # Entity is available if coordinator is available AND data exists for this sensor
+        if not self.coordinator.last_update_success:
+            return False
+        data = self.coordinator.data or {}
+        return self.entity_description.key in data and data[self.entity_description.key] is not None
+
+    @property
     def native_value(self) -> float | None:
         """Return the state of the sensor."""
         value = self.coordinator.data.get(self.entity_description.key)
