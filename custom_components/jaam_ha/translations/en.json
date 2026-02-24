@@ -137,5 +137,21 @@
         "name": "Light Level"
       }
     }
+  },
+  "services": {
+    "set_home_region": {
+      "name": "Set Home Region",
+      "description": "Set the home region ID on the JAAM device.",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "JAAM device to update. If not specified, all devices will be updated."
+        },
+        "region_id": {
+          "name": "Region ID",
+          "description": "The home region ID (0-9999)."
+        }
+      }
+    }
   }
 }
