@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import aiohttp
 
@@ -47,11 +47,32 @@ class JaamHAFirmwareUpdate(UpdateEntity, JaamHAEntity):
         """Initialize the update entity."""
         super().__init__(coordinator, entity_description)
 
-        # Support firmware installation
-        self._attr_supported_features = UpdateEntityFeature.INSTALL
+        # Support firmware installation, progress tracking, and release notes
+        self._attr_supported_features = (
+            UpdateEntityFeature.INSTALL | UpdateEntityFeature.PROGRESS | UpdateEntityFeature.RELEASE_NOTES
+        )
 
         # Cache for release notes (version -> release_notes)
         self._release_notes_cache: dict[str, str | None] = {}
+
+        # Track last progress to detect changes
+        self._last_progress: int | None = None
+
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        # Check if progress changed
+        current_progress = self.coordinator.data.get("fw_update_progress") if self.coordinator.data else None
+
+        if current_progress != self._last_progress:
+            LOGGER.debug(
+                "Firmware update progress changed from %s to %s",
+                self._last_progress,
+                current_progress,
+            )
+            self._last_progress = current_progress
+
+        # Always call parent to update the entity
+        super()._handle_coordinator_update()
 
     @property
     def installed_version(self) -> str | None:
@@ -74,6 +95,24 @@ class JaamHAFirmwareUpdate(UpdateEntity, JaamHAEntity):
         return self.coordinator.data.get("fw_latest") or self.installed_version
 
     @property
+    def icon(self) -> str:
+        """Return the icon to use in the frontend.
+
+        Returns different icons based on update availability:
+        - mdi:package-up: Update available
+        - mdi:package-check: No update available (up to date)
+        """
+        installed = self.installed_version
+        latest = self.latest_version
+
+        # Show update available icon if versions differ
+        if installed and latest and installed != latest:
+            return "mdi:package-up"
+
+        # Show up-to-date icon when versions match or no latest version
+        return "mdi:package-check"
+
+    @property
     def release_url(self) -> str | None:
         """Return the URL to the GitHub releases page.
 
@@ -89,13 +128,11 @@ class JaamHAFirmwareUpdate(UpdateEntity, JaamHAEntity):
         # Fallback to releases page if no version available
         return f"{FIRMWARE_REPO_URL}/releases"
 
-    @property
-    def release_summary(self) -> str | None:
-        """Return the release summary/changelog.
+    async def async_release_notes(self) -> str | None:
+        """Return the release notes.
 
-        This is fetched from GitHub API asynchronously and cached.
-        Returns cached value if available, None otherwise.
-        Triggers async fetch in background if not cached.
+        Fetches release notes from GitHub API and caches them.
+        The returned string can contain markdown.
         """
         version = self.latest_version
         if not version:
@@ -105,21 +142,7 @@ class JaamHAFirmwareUpdate(UpdateEntity, JaamHAEntity):
         if version in self._release_notes_cache:
             return self._release_notes_cache[version]
 
-        # Trigger background fetch if not in cache
-        self.hass.async_create_task(self._fetch_release_notes(version))
-        return None
-
-    async def _fetch_release_notes(self, version: str) -> None:
-        """Fetch release notes from GitHub API.
-
-        Args:
-            version: Version tag to fetch release notes for.
-
-        """
-        # Check if already cached
-        if version in self._release_notes_cache:
-            return
-
+        # Fetch release notes from GitHub
         try:
             session = async_get_clientsession(self.hass)
             url = f"{GITHUB_API_URL}/releases/tags/{version}"
@@ -136,58 +159,70 @@ class JaamHAFirmwareUpdate(UpdateEntity, JaamHAEntity):
                         # Cache the result
                         self._release_notes_cache[version] = release_body or None
 
-                        # Trigger entity update to show the changelog
-                        self.async_write_ha_state()
-
                         LOGGER.debug(
                             "Fetched release notes for version %s (%d chars)",
                             version,
                             len(release_body) if release_body else 0,
                         )
-                    elif response.status == 404:
+                        return release_body or None
+
+                    if response.status == 404:
                         # Release not found, cache None to avoid repeated requests
                         self._release_notes_cache[version] = None
                         LOGGER.debug("No release found on GitHub for version %s", version)
-                    else:
-                        LOGGER.warning(
-                            "GitHub API returned status %d for version %s",
-                            response.status,
-                            version,
-                        )
+                        return None
+
+                    LOGGER.warning(
+                        "GitHub API returned status %d for version %s",
+                        response.status,
+                        version,
+                    )
+                    return None
 
         except TimeoutError:
             LOGGER.warning("Timeout fetching release notes for version %s", version)
+            return None
         except aiohttp.ClientError as exc:
             LOGGER.warning("Error fetching release notes for version %s: %s", version, exc)
+            return None
         except Exception as exc:  # noqa: BLE001
             LOGGER.error("Unexpected error fetching release notes: %s", exc)
+            return None
 
     @property
-    def in_progress(self) -> bool | int:
-        """Return firmware update progress.
+    def update_percentage(self) -> int | None:
+        """Return firmware update progress percentage.
 
         Returns:
-            False if no update in progress.
+            None if no update in progress.
             Integer percentage (0-100) if update is in progress.
         """
         if self.coordinator.data is None:
-            return False
+            return None
 
         progress = self.coordinator.data.get("fw_update_progress")
         if progress is None:
-            return False
+            return None
 
         # Return progress percentage (0-100)
         return progress
 
-    async def async_install(self, version: str | None, backup: bool, **kwargs: object) -> None:
-        """Install firmware update.
+    @property
+    def in_progress(self) -> bool:
+        """Return True if update is in progress.
 
-        Args:
-            version: Version to install (None for latest_version).
-            backup: Whether to backup before update (ignored for this device).
-            **kwargs: Additional arguments (ignored).
+        This is used by Home Assistant to determine if installation is ongoing.
+        """
+        return self.update_percentage is not None
 
+    async def async_install(self, version: str | None, backup: bool, **kwargs: Any) -> None:
+        """Install an update.
+
+        Version can be specified to install a specific version. When `None`, the
+        latest version needs to be installed.
+
+        The backup parameter indicates a backup should be taken before
+        installing the update (ignored for this device).
         """
         # Use latest_version if no specific version provided
         target_version = version or self.latest_version
@@ -210,16 +245,3 @@ class JaamHAFirmwareUpdate(UpdateEntity, JaamHAEntity):
         except Exception as exc:
             LOGGER.error("Failed to start firmware update: %s", exc)
             raise
-
-    @property
-    def available(self) -> bool:
-        """Return if entity is available."""
-        return super().available
-
-    async def async_added_to_hass(self) -> None:
-        """When entity is added to hass."""
-        await super().async_added_to_hass()
-
-    async def async_will_remove_from_hass(self) -> None:
-        """When entity will be removed from hass."""
-        await super().async_will_remove_from_hass()

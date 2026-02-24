@@ -616,11 +616,23 @@ class JaamHAApiClient:
 
             elif msg_type == "fw_update_progress":
                 if self._data:
-                    self._data["fw_update_progress"] = data.get("progress")
+                    progress = data.get("progress")
+                    if progress == -1:
+                        # Update failed - clear progress
+                        LOGGER.error("Firmware update failed (progress: -1)")
+                        self._data["fw_update_progress"] = None
+                    elif progress == 100:
+                        # Update completed successfully - clear progress
+                        LOGGER.info("Firmware update completed successfully")
+                        self._data["fw_update_progress"] = None
+                    else:
+                        # Update in progress (0-99)
+                        self._data["fw_update_progress"] = progress
 
             # Notify coordinator of data update
             if self._update_callback and self._data:
-                self._update_callback(self._data)
+                # Create a copy to ensure coordinator detects changes
+                self._update_callback(dict(self._data))
 
         except json.JSONDecodeError as exc:
             # Ignore invalid JSON
