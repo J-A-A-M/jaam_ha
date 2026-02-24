@@ -58,6 +58,9 @@ class JaamHAFirmwareUpdate(UpdateEntity, JaamHAEntity):
         # Track last progress to detect changes
         self._last_progress: int | None = None
 
+        # Track if installation was initiated (before coordinator data arrives)
+        self._installation_initiated: bool = False
+
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         # Check if progress changed
@@ -70,6 +73,15 @@ class JaamHAFirmwareUpdate(UpdateEntity, JaamHAEntity):
                 current_progress,
             )
             self._last_progress = current_progress
+
+        # Clear installation initiated flag when coordinator data arrives
+        if current_progress is not None:
+            # Progress data received - installation is confirmed by device
+            self._installation_initiated = False
+        elif self._installation_initiated and current_progress is None:
+            # Installation was initiated but progress is None - update may have completed or failed
+            # Keep the flag until we get actual progress or next coordinator update confirms completion
+            pass
 
         # Always call parent to update the entity
         super()._handle_coordinator_update()
@@ -212,8 +224,11 @@ class JaamHAFirmwareUpdate(UpdateEntity, JaamHAEntity):
         """Return True if update is in progress.
 
         This is used by Home Assistant to determine if installation is ongoing.
+        Returns True if:
+        - Installation was initiated locally (before coordinator data arrives)
+        - OR update progress data is available from coordinator
         """
-        return self.update_percentage is not None
+        return self._installation_initiated or self.update_percentage is not None
 
     async def async_install(self, version: str | None, backup: bool, **kwargs: Any) -> None:
         """Install an update.
@@ -233,6 +248,11 @@ class JaamHAFirmwareUpdate(UpdateEntity, JaamHAEntity):
 
         LOGGER.info("Starting firmware update to version %s", target_version)
 
+        # Mark installation as initiated immediately
+        self._installation_initiated = True
+        # Update state to show in_progress immediately
+        self.async_write_ha_state()
+
         try:
             # Send update command to device via API client
             client = self.coordinator.config_entry.runtime_data.client
@@ -244,4 +264,7 @@ class JaamHAFirmwareUpdate(UpdateEntity, JaamHAEntity):
 
         except Exception as exc:
             LOGGER.error("Failed to start firmware update: %s", exc)
+            # Clear installation flag on error
+            self._installation_initiated = False
+            self.async_write_ha_state()
             raise
