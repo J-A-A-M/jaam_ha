@@ -22,6 +22,7 @@ Uncomment and customize these badges if you want to use them:
 - **Easy Setup**: Simple configuration through the UI - no YAML required
 - **Automatic Discovery**: Zeroconf support for automatic device detection
 - **Real-time Monitoring**: WebSocket connection for instant updates
+- **Firmware Updates**: Install firmware updates with progress tracking and release notes
 - **Alert System**: 11 separate binary sensors for different threat types
 - **Location Info**: Track home district name and temperature
 - **Room Climate**: Monitor room temperature, humidity, and pressure (mmHg)
@@ -40,6 +41,7 @@ Platform | Description
 `light` | Lamp control with brightness and color
 `select` | Map mode selection
 `sensor` | Home district, district temperature, room climate (temperature, humidity, pressure, light level), and system diagnostics
+`update` | Firmware update management with progress tracking and release notes
 
 ## 🚀 Quick Start
 
@@ -124,6 +126,7 @@ The integration creates several entities for your JAAM device:
 - **Light**: Lamp control with brightness and color
 - **Select**: Map display mode selection
 - **Sensors**: Home district, temperature, room climate (dynamic), and 6 system diagnostic sensors
+- **Update**: Firmware update management with progress tracking
 
 Find all entities in **Settings** → **Devices & Services** → **JAAM** → click on the device.
 
@@ -169,6 +172,15 @@ Each alert sensor:
   - Different display options for the device map
   - Real-time sync with device
 
+### Update
+
+- **Firmware**: Manage device firmware updates
+  - View current firmware version
+  - Check for available updates
+  - Install updates directly from Home Assistant
+  - Real-time progress tracking during update
+  - View release notes from GitHub
+  - Entity category: Diagnostic
 
 ### Sensors
 
