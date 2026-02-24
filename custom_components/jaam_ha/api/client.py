@@ -147,7 +147,6 @@ class JaamHAApiClient:
         async with self._connect_lock:
             # Check if already connected
             if self.connected:
-                LOGGER.debug("Already connected, returning existing data")
                 if self._data:
                     return self._data
                 # Wait for initial state if connected but no data yet
@@ -168,7 +167,7 @@ class JaamHAApiClient:
                     )
 
                 self._connected = True
-                LOGGER.debug("WebSocket connected successfully")
+                LOGGER.info("WebSocket connected successfully")
 
                 # Notify coordinator of connection
                 if self._connection_callback:
@@ -176,14 +175,17 @@ class JaamHAApiClient:
 
                 # Wait for initial_state message
                 initial_data = await self._wait_for_initial_state()
-                LOGGER.info("Received initial state - chip_id: %s", initial_data.get("chip_id"))
+                LOGGER.info(
+                    "Received initial state - chip_id: %s, fw_version: %s",
+                    initial_data.get("chip_id"),
+                    initial_data.get("fw_version"),
+                )
 
                 # Enable automatic reconnection
                 self._should_reconnect = True
 
                 # Start listening for updates in background
                 self._listen_task = asyncio.create_task(self._listen())
-                LOGGER.debug("Started background listener task")
 
                 return initial_data  # noqa: TRY300
 
@@ -193,11 +195,14 @@ class JaamHAApiClient:
                 raise JaamHAApiClientCommunicationError(msg) from exception
             except (aiohttp.ClientError, OSError) as exception:
                 msg = f"Error connecting to {self._host}:{self._port} - {exception}"
-                LOGGER.error(msg)
+                LOGGER.error("%s - Type: %s", msg, type(exception).__name__)
                 raise JaamHAApiClientCommunicationError(msg) from exception
+            except JaamHAApiClientError:
+                # Re-raise our own exceptions without wrapping
+                raise
             except Exception as exception:
                 msg = f"Unexpected error connecting - {exception}"
-                LOGGER.error(msg)
+                LOGGER.error("%s - Type: %s", msg, type(exception).__name__)
                 raise JaamHAApiClientError(msg) from exception
 
     async def async_disconnect(self) -> None:
@@ -236,16 +241,13 @@ class JaamHAApiClient:
         Uses lock to prevent multiple concurrent reconnection attempts.
         """
         if not self._should_reconnect:
-            LOGGER.debug("Reconnect triggered but automatic reconnection is disabled")
             return
 
         if self.connected:
-            LOGGER.debug("Already connected, ignoring reconnect trigger")
             return
 
         # Check if lock is already acquired (connection attempt in progress)
         if self._connect_lock.locked():
-            LOGGER.debug("Connection attempt already in progress, ignoring reconnect trigger")
             return
 
         LOGGER.info("Triggered immediate reconnection attempt (skipping backoff)")
@@ -271,7 +273,6 @@ class JaamHAApiClient:
         # Close WebSocket
         if self._ws and not self._ws.closed:
             await self._ws.close()
-            LOGGER.debug("Closed existing WebSocket connection")
         self._ws = None
 
     async def _immediate_reconnect(self) -> None:
@@ -279,7 +280,6 @@ class JaamHAApiClient:
         async with self._connect_lock:
             # Check if already connected (another task may have connected while waiting for lock)
             if self.connected:
-                LOGGER.debug("Already connected (by another task), skipping immediate reconnect")
                 return
 
             # Close any existing connection
@@ -328,10 +328,9 @@ class JaamHAApiClient:
 
                 # Start listening again
                 self._listen_task = asyncio.create_task(self._listen())
-                LOGGER.debug("Restarted listener task after immediate reconnection")
 
             except asyncio.CancelledError:
-                LOGGER.debug("Immediate reconnection cancelled")
+                pass
             except (TimeoutError, aiohttp.ClientError, OSError) as exc:
                 LOGGER.warning("Immediate reconnection failed: %s", exc)
                 # Resume normal reconnect loop with backoff
@@ -357,14 +356,21 @@ class JaamHAApiClient:
             async with asyncio.timeout(10):
                 async for msg in self._ws:
                     if msg.type == WSMsgType.TEXT:
-                        data = json.loads(msg.data)
-                        if data.get("type") == "initial_state":
-                            return self._parse_initial_state(data)
+                        try:
+                            data = json.loads(msg.data)
+                            msg_type = data.get("type")
+
+                            if msg_type == "initial_state":
+                                return self._parse_initial_state(data)
+                        except json.JSONDecodeError as exc:
+                            LOGGER.error("Failed to parse JSON from message: %s", msg.data, exc_info=exc)
                     elif msg.type in (WSMsgType.CLOSED, WSMsgType.ERROR):
-                        msg_text = "WebSocket closed before receiving initial state"
+                        msg_text = f"WebSocket closed before receiving initial state (type: {msg.type})"
+                        LOGGER.error(msg_text)
                         raise JaamHAApiClientCommunicationError(msg_text)
         except TimeoutError as exception:
             msg = "Timeout waiting for initial state"
+            LOGGER.error(msg)
             raise JaamHAApiClientCommunicationError(msg) from exception
 
         msg = "No initial state received"
@@ -381,7 +387,7 @@ class JaamHAApiClient:
             Parsed device data as a dictionary.
 
         """
-        LOGGER.debug("Received initial_state message: %s", data)
+        LOGGER.info("Parsing initial_state message")
 
         lamp_data = data.get("lamp", {})
 
@@ -390,6 +396,7 @@ class JaamHAApiClient:
             "chip_id": data.get("chip_id"),
             "device_name": data.get("device_name"),
             "fw_version": data.get("fw_version"),
+            "fw_latest": data.get("fw_latest"),
             "map_mode_id": data.get("map_mode_id"),
             "home_region": data.get("home_region"),
             "home_alert_flags": data.get("home_alert_flags"),
@@ -414,7 +421,6 @@ class JaamHAApiClient:
             device_data.get("chip_id"),
             device_data.get("fw_version"),
         )
-        LOGGER.debug("Full device_data: %s", device_data)
 
         self._data = device_data
         return device_data
@@ -483,7 +489,6 @@ class JaamHAApiClient:
                 async with self._connect_lock:
                     # Check again after acquiring lock
                     if self.connected:
-                        LOGGER.debug("Already connected (by another task), exiting reconnect loop")
                         break
 
                     # Close any existing connection
@@ -527,14 +532,12 @@ class JaamHAApiClient:
 
                     # Start listening again
                     self._listen_task = asyncio.create_task(self._listen())
-                    LOGGER.debug("Restarted listener task after reconnection")
 
                     # Reset attempt counter on successful reconnection
                     attempt = 0
                     break
 
             except asyncio.CancelledError:
-                LOGGER.debug("Reconnection cancelled")
                 break
             except (TimeoutError, aiohttp.ClientError, OSError) as exc:
                 LOGGER.warning(
@@ -544,7 +547,7 @@ class JaamHAApiClient:
                 )
                 # Continue loop for next attempt
 
-    async def _handle_message(self, raw_data: str) -> None:
+    async def _handle_message(self, raw_data: str) -> None:  # noqa: C901
         """
         Handle incoming WebSocket message.
 
@@ -557,45 +560,31 @@ class JaamHAApiClient:
             msg_type = data.get("type")
 
             if not msg_type:
-                LOGGER.debug("Received message without type: %s", raw_data)
                 return
-
-            LOGGER.debug("Received message type: %s", msg_type)
 
             # Update local state based on message type
             if msg_type == "map_mode_change":
                 if self._data:
                     self._data["map_mode_id"] = data.get("map_mode_id")
-                    LOGGER.debug(
-                        "Updated map_mode_id: %s",
-                        self._data.get("map_mode_id"),
-                    )
 
             elif msg_type == "lamp_change":
                 lamp_data = data.get("lamp", {})
                 if self._data:
                     self._data["lamp_color"] = lamp_data.get("color")
                     self._data["lamp_brightness"] = lamp_data.get("brightness")
-                    LOGGER.debug(
-                        "Updated lamp - color: %s, brightness: %s",
-                        self._data.get("lamp_color"),
-                        self._data.get("lamp_brightness"),
-                    )
 
             elif msg_type == "home_region_change":
                 if self._data:
                     self._data["home_region"] = data.get("home_region")
-                    LOGGER.debug("Updated home_region: %s", self._data.get("home_region"))
 
             elif msg_type == "home_alert_change":
                 if self._data:
                     self._data["home_alert_flags"] = data.get("home_alert_flags")
-                    LOGGER.debug("Updated home_alert_flags: %s", self._data.get("home_alert_flags"))
 
             elif msg_type == "device_name_change":
                 if self._data:
                     self._data["device_name"] = data.get("device_name")
-                    LOGGER.info("Updated device_name: %s", self._data.get("device_name"))
+                    LOGGER.info("Device name changed: %s", self._data.get("device_name"))
 
             elif msg_type == "system_info":
                 if self._data:
@@ -606,39 +595,31 @@ class JaamHAApiClient:
                     self._data["cpu_temp"] = data.get("cpu_temp")
                     self._data["websocket_status"] = data.get("websocket_status")
                     self._data["websocket_uptime"] = data.get("websocket_uptime")
-                    LOGGER.debug(
-                        "Updated system info - memory: %s, uptime: %s, wifi_signal: %s, cpu_temp: %s",
-                        self._data.get("used_memory"),
-                        self._data.get("uptime"),
-                        self._data.get("wifi_signal"),
-                        self._data.get("cpu_temp"),
-                    )
 
             elif msg_type == "home_district_temp_change":
                 if self._data:
                     self._data["home_district_temp"] = data.get("home_district_temp")
-                    LOGGER.debug("Updated home_district_temp: %s", self._data.get("home_district_temp"))
 
             elif msg_type == "climate_data_change":
                 if self._data:
                     self._data["climate_temp"] = data.get("climate_temp")
                     self._data["climate_humidity"] = data.get("climate_humidity")
                     self._data["climate_pressure"] = data.get("climate_pressure")
-                    LOGGER.debug(
-                        "Updated climate data: temp=%s, humidity=%s, pressure=%s",
-                        self._data.get("climate_temp"),
-                        self._data.get("climate_humidity"),
-                        self._data.get("climate_pressure"),
-                    )
 
             elif msg_type == "light_level_change":
                 if self._data:
                     self._data["light_level"] = data.get("light_level")
-                    LOGGER.debug("Updated light_level: %s", self._data.get("light_level"))
+
+            elif msg_type == "firmware_update":
+                if self._data:
+                    self._data["fw_latest"] = data.get("fw_latest")
+
+            elif msg_type == "fw_update_progress":
+                if self._data:
+                    self._data["fw_update_progress"] = data.get("progress")
 
             # Notify coordinator of data update
             if self._update_callback and self._data:
-                LOGGER.debug("Invoking update callback with data: %s", self._data)
                 self._update_callback(self._data)
 
         except json.JSONDecodeError as exc:
@@ -725,6 +706,23 @@ class JaamHAApiClient:
         command = {
             "type": "set_home_region",
             "region_id": region_id,
+        }
+
+        await self._send_command(command)
+
+    async def async_update_firmware(self, version: str) -> None:
+        """Update device firmware to specified version.
+
+        Args:
+            version: Firmware version to install.
+
+        Raises:
+            JaamHAApiClientCommunicationError: If command fails.
+
+        """
+        command = {
+            "type": "update_firmware",
+            "version": version,
         }
 
         await self._send_command(command)

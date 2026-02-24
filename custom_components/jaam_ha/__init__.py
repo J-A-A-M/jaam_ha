@@ -42,6 +42,7 @@ PLATFORMS: list[Platform] = [
     Platform.LIGHT,
     Platform.SELECT,
     Platform.SENSOR,
+    Platform.UPDATE,
 ]
 
 # This integration is configured via config entries only

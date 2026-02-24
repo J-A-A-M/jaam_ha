@@ -115,8 +115,6 @@ class JaamHADataUpdateCoordinator(DataUpdateCoordinator[JaamHADeviceData]):
                 translation_key="connection_failed",
             ) from exception
 
-        LOGGER.debug("Coordinator setup complete for %s", self.config_entry.entry_id)
-
     def _handle_device_update(self, data: JaamHADeviceData) -> None:
         """
         Handle real-time data updates from WebSocket.
@@ -128,24 +126,12 @@ class JaamHADataUpdateCoordinator(DataUpdateCoordinator[JaamHADeviceData]):
             data: Updated device data from WebSocket.
 
         """
-        LOGGER.debug(
-            "Device update received - chip_id: %s, data keys: %s",
-            data.get("chip_id"),
-            data.keys(),
-        )
-
         # Check if device_name changed and update device registry
         # Note: We compare with cached value because self.data might be the same object as data
         if "device_name" in data:
             new_name = data.get("device_name")
             # Use cached value from previous update (not self.data which might be the same object as data)
             old_name = getattr(self, "_cached_device_name", None)
-
-            LOGGER.debug(
-                "Checking device_name: old='%s', new='%s'",
-                old_name,
-                new_name,
-            )
 
             # Update device model if it changed
             if new_name and old_name != new_name:
@@ -154,6 +140,20 @@ class JaamHADataUpdateCoordinator(DataUpdateCoordinator[JaamHADeviceData]):
 
             # Cache new value for next comparison
             self._cached_device_name = new_name
+
+        # Check if fw_version changed and update device registry
+        if "fw_version" in data:
+            new_version = data.get("fw_version")
+            # Use cached value from previous update
+            old_version = getattr(self, "_cached_fw_version", None)
+
+            # Update device sw_version if it changed
+            if new_version and old_version != new_version:
+                LOGGER.info("Firmware version changed from '%s' to '%s'", old_version, new_version)
+                self._update_device_sw_version(new_version)
+
+            # Cache new value for next comparison
+            self._cached_fw_version = new_version
 
         # Update coordinator data and notify all listening entities
         self.async_set_updated_data(data)
@@ -173,6 +173,7 @@ class JaamHADataUpdateCoordinator(DataUpdateCoordinator[JaamHADeviceData]):
         """
         if not connected:
             LOGGER.warning("WebSocket disconnected - waiting 15 seconds before marking unavailable")
+            LOGGER.debug("Current data available: %s", self.data is not None)
 
             # Start timer to mark entities unavailable after grace period
             if self._unavailable_timer_task and not self._unavailable_timer_task.done():
@@ -235,6 +236,30 @@ class JaamHADataUpdateCoordinator(DataUpdateCoordinator[JaamHADeviceData]):
         else:
             LOGGER.warning("Device not found in registry for identifier: %s", device_identifier)
 
+    def _update_device_sw_version(self, new_sw_version: str) -> None:
+        """
+        Update device software version in device registry.
+
+        Args:
+            new_sw_version: New firmware version from device.
+
+        """
+        device_reg = dr.async_get(self.hass)
+        chip_id = self.data.get("chip_id") if self.data else None
+        device_identifier = chip_id or self.config_entry.entry_id
+
+        # Find the device by identifier
+        device = device_reg.async_get_device(identifiers={(self.config_entry.domain, device_identifier)})
+
+        if device:
+            device_reg.async_update_device(
+                device.id,
+                sw_version=new_sw_version,
+            )
+            LOGGER.info("Updated device sw_version to '%s' in device registry", new_sw_version)
+        else:
+            LOGGER.warning("Device not found in registry for identifier: %s", device_identifier)
+
     async def _async_update_data(self) -> JaamHADeviceData:
         """
         Fetch data from API endpoint.
@@ -251,6 +276,7 @@ class JaamHADataUpdateCoordinator(DataUpdateCoordinator[JaamHADeviceData]):
             ConfigEntryAuthFailed: If authentication fails, triggers reauthentication.
             UpdateFailed: If data fetching fails for other reasons.
         """
+        LOGGER.debug("_async_update_data called for entry %s", self.config_entry.entry_id)
         client = self.config_entry.runtime_data.client
 
         # Skip update if client is disconnected (during reconnect attempts)

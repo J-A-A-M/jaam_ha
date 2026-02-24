@@ -106,27 +106,36 @@ class JaamHAEntity(CoordinatorEntity[JaamHADataUpdateCoordinator]):
                 self._attr_unique_id,
             )
 
-        # Set device info with chip_id as identifier and device_name as name
-        chip_id = coordinator.data.get("chip_id") if coordinator.data else None
-        device_identifier = chip_id or coordinator.config_entry.entry_id
-        model_name = coordinator.data.get("device_name") if coordinator.data else None
+    @property
+    def device_info(self) -> DeviceInfo:
+        """
+        Return device info for this entity.
 
-        # Use device_name from device if available, otherwise fallback to chip_id or entry title
+        This property dynamically generates device info from current coordinator data,
+        allowing sw_version and other device properties to update when data changes.
+        """
+        # Get chip_id as device identifier
+        chip_id = self.coordinator.data.get("chip_id") if self.coordinator.data else None
+        device_identifier = chip_id or self.coordinator.config_entry.entry_id
+
+        # Get device name
         if chip_id:
             device_name = f"JAAM {chip_id}"
         else:
-            device_name = coordinator.config_entry.title
+            device_name = self.coordinator.config_entry.title
 
-        fw_version = coordinator.data.get("fw_version") if coordinator.data else None
+        # Get model name and firmware version from current data
+        model_name = self.coordinator.data.get("device_name") if self.coordinator.data else None
+        fw_version = self.coordinator.data.get("fw_version") if self.coordinator.data else None
 
         # Build configuration URL from config entry
-        host = coordinator.config_entry.data.get(CONF_HOST)
+        host = self.coordinator.config_entry.data.get(CONF_HOST)
         config_url = f"http://{host}" if host else None
 
-        self._attr_device_info = DeviceInfo(
+        return DeviceInfo(
             identifiers={
                 (
-                    coordinator.config_entry.domain,
+                    self.coordinator.config_entry.domain,
                     device_identifier,
                 ),
             },
@@ -136,12 +145,4 @@ class JaamHAEntity(CoordinatorEntity[JaamHADataUpdateCoordinator]):
             serial_number=device_identifier,
             sw_version=fw_version or "Unknown",
             configuration_url=config_url,
-        )
-
-        LOGGER.debug(
-            "[%s] Device info set - name: %s, identifier: %s, fw_version: %s",
-            entity_description.key,
-            device_name,
-            device_identifier,
-            fw_version,
         )
