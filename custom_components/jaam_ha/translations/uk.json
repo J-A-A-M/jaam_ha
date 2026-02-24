@@ -136,6 +136,11 @@
       "light_level": {
         "name": "Рівень освітлення"
       }
+    },
+    "update": {
+      "firmware": {
+        "name": "Прошивка"
+      }
     }
   },
   "services": {

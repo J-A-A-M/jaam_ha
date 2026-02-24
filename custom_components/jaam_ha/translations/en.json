@@ -136,6 +136,11 @@
       "light_level": {
         "name": "Light Level"
       }
+    },
+    "update": {
+      "firmware": {
+        "name": "Firmware"
+      }
     }
   },
   "services": {
