@@ -1,3 +1,22 @@
 # yaml-language-server: $schema=../../schemas/yaml/services_schema.yaml
 # Describes the format for available services for jaam_ha
-# No custom services defined - use standard light entity services
+# Service names and descriptions are in translations/en.json and translations/uk.json
+
+set_home_region:
+  fields:
+    device_id:
+      required: false
+      example: "abc123"
+      selector:
+        device:
+          integration: jaam_ha
+          multiple: true
+    region_id:
+      required: true
+      example: 31
+      selector:
+        number:
+          min: 0
+          max: 9999
+          step: 1
+          mode: box

@@ -716,7 +716,7 @@ class JaamHAApiClient:
         Set home region on device.
 
         Args:
-            region_id: Region ID (0-100).
+            region_id: Region ID (0-9999).
 
         Raises:
             JaamHAApiClientCommunicationError: If command fails.
