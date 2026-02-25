@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import re
 from typing import TYPE_CHECKING, Any
 
 import aiohttp
@@ -25,6 +26,9 @@ if TYPE_CHECKING:
 FIRMWARE_REPO_URL = "https://github.com/J-A-A-M/jaam_fusion"
 GITHUB_API_URL = "https://api.github.com/repos/J-A-A-M/jaam_fusion"
 
+# Regex pattern for parsing version strings (e.g., 5.0, 5.0.1, 5.0-b32, 5.0.1-b32)
+VERSION_PATTERN = re.compile(r"^(\d+)\.(\d+)(?:\.(\d+))?(?:-b(\d+))?$")
+
 ENTITY_DESCRIPTIONS = (
     UpdateEntityDescription(
         key="firmware",
@@ -34,6 +38,30 @@ ENTITY_DESCRIPTIONS = (
         has_entity_name=True,
     ),
 )
+
+
+def parse_version(version: str) -> tuple[int, int, int, int] | None:
+    """Parse version string into comparable tuple.
+
+    Args:
+        version: Version string (e.g., "5.0", "5.0.1", "5.0-b32", "5.0.1-b32")
+
+    Returns:
+        Tuple of (major, minor, patch, beta) where beta is 0 for release versions
+        or beta number for beta versions. Returns None if parsing fails.
+
+    Examples:
+        "5.0" -> (5, 0, 0, 0)
+        "5.0.1" -> (5, 0, 1, 0)
+        "5.0-b32" -> (5, 0, 0, 32)
+        "5.0.1-b32" -> (5, 0, 1, 32)
+    """
+    match = VERSION_PATTERN.match(version)
+    if not match:
+        return None
+
+    major, minor, patch, beta = match.groups()
+    return (int(major), int(minor), int(patch) if patch else 0, int(beta) if beta else 0)
 
 
 class JaamHAFirmwareUpdate(UpdateEntity, JaamHAEntity):
@@ -106,6 +134,57 @@ class JaamHAFirmwareUpdate(UpdateEntity, JaamHAEntity):
 
         return self.coordinator.data.get("fw_latest") or self.installed_version
 
+    def version_is_newer(self, latest_version: str, installed_version: str) -> bool:
+        """Return True if latest_version is newer than installed_version.
+
+        Custom version comparison logic:
+        - Release version (without -b suffix) is always newer than beta with same X.Y.Z
+        - Example: "5.0.1" is newer than "5.0.1-b32"
+        - Standard semantic versioning applies otherwise
+
+        Args:
+            latest_version: Latest available version
+            installed_version: Currently installed version
+
+        Returns:
+            True if latest_version is newer than installed_version
+        """
+        if latest_version == installed_version:
+            return False
+
+        latest_parsed = parse_version(latest_version)
+        installed_parsed = parse_version(installed_version)
+
+        # If either version fails to parse, fall back to string comparison
+        if not latest_parsed or not installed_parsed:
+            LOGGER.debug(
+                "Version parsing failed, using string comparison: %s vs %s",
+                latest_version,
+                installed_version,
+            )
+            return latest_version != installed_version
+
+        latest_major, latest_minor, latest_patch, latest_beta = latest_parsed
+        installed_major, installed_minor, installed_patch, installed_beta = installed_parsed
+
+        # Compare major.minor.patch first
+        if (latest_major, latest_minor, latest_patch) > (installed_major, installed_minor, installed_patch):
+            return True
+        if (latest_major, latest_minor, latest_patch) < (installed_major, installed_minor, installed_patch):
+            return False
+
+        # Same X.Y.Z - now compare beta status
+        # If installed is beta and latest is release (beta=0), update is available
+        if installed_beta > 0 and latest_beta == 0:
+            return True
+
+        # If installed is release and latest is beta, no update available
+        if installed_beta == 0 and latest_beta > 0:
+            return False
+
+        # Both beta or both release - compare beta numbers
+        return latest_beta > installed_beta
+
     @property
     def icon(self) -> str:
         """Return the icon to use in the frontend.
@@ -117,11 +196,11 @@ class JaamHAFirmwareUpdate(UpdateEntity, JaamHAEntity):
         installed = self.installed_version
         latest = self.latest_version
 
-        # Show update available icon if versions differ
-        if installed and latest and installed != latest:
+        # Show update available icon if versions differ and update is available
+        if installed and latest and self.version_is_newer(latest, installed):
             return "mdi:package-up"
 
-        # Show up-to-date icon when versions match or no latest version
+        # Show up-to-date icon when versions match or no update available
         return "mdi:package-check"
 
     @property
