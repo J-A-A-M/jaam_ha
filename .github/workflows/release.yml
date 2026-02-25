@@ -1,0 +1,273 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version number (e.g., 0.2.0)"
+        required: true
+        type: string
+      release_type:
+        description: "Release type"
+        required: true
+        type: choice
+        options:
+          - production
+          - beta
+        default: production
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate version format
+        run: |
+          if ! echo "${{ inputs.version }}" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Error: Invalid version format. Expected: X.Y.Z"
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0 # Fetch all history for changelog generation
+
+      - name: Set up Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Check if version already exists
+        run: |
+          if git rev-parse "${{ inputs.version }}" >/dev/null 2>&1; then
+            echo "Error: Version ${{ inputs.version }} already exists"
+            exit 1
+          fi
+
+      - name: Update version in manifest.json
+        run: |
+          python3 << 'EOF'
+          import json
+
+          manifest_path = "custom_components/jaam_ha/manifest.json"
+
+          with open(manifest_path, 'r') as f:
+              manifest = json.load(f)
+
+          old_version = manifest.get('version', '')
+          new_version = "${{ inputs.version }}"
+
+          if old_version == new_version:
+              print(f"⚠️ Warning: Version is already {new_version}")
+          else:
+              print(f"Updating version: {old_version} -> {new_version}")
+
+          manifest['version'] = new_version
+
+          with open(manifest_path, 'w') as f:
+              json.dump(manifest, f, indent=2)
+              f.write('\n')  # Add trailing newline
+
+          print(f"✅ Version updated to {new_version}")
+          EOF
+
+      - name: Verify version in manifest.json
+        run: |
+          python3 << 'EOF'
+          import json
+          import sys
+
+          manifest_path = "custom_components/jaam_ha/manifest.json"
+
+          with open(manifest_path, 'r') as f:
+              manifest = json.load(f)
+
+          current_version = manifest.get('version', '')
+          expected_version = "${{ inputs.version }}"
+
+          if current_version != expected_version:
+              print(f"❌ Error: Version mismatch!")
+              print(f"Expected: {expected_version}")
+              print(f"Actual: {current_version}")
+              sys.exit(1)
+
+          print(f"✅ Version verified: {current_version}")
+          EOF
+
+      - name: Get last release tag
+        id: get_last_tag
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$LAST_TAG" ]; then
+            echo "No previous tags found, using first commit"
+            LAST_TAG=$(git rev-list --max-parents=0 HEAD)
+          fi
+          echo "last_tag=$LAST_TAG" >> $GITHUB_OUTPUT
+          echo "Last tag/commit: $LAST_TAG"
+
+      - name: Generate commit list for changelog
+        id: get_commits
+        run: |
+          echo "Getting commits since ${{ steps.get_last_tag.outputs.last_tag }}"
+
+          # Get commits in a format suitable for Gemini
+          COMMITS=$(git log ${{ steps.get_last_tag.outputs.last_tag }}..HEAD \
+            --pretty=format:"- %s (by %an)" \
+            --no-merges)
+
+          if [ -z "$COMMITS" ]; then
+            echo "No commits found since last release"
+            COMMITS="- Initial release"
+          fi
+
+          # Save to file to avoid issues with multiline in GitHub Actions
+          echo "$COMMITS" > commits.txt
+          echo "Commits saved to commits.txt"
+          cat commits.txt
+
+      - name: Generate changelog with Gemini
+        id: generate_changelog
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          python3 << 'EOF'
+          import json
+          import os
+          import urllib.request
+          import urllib.error
+
+          api_key = os.environ.get('GEMINI_API_KEY')
+          if not api_key:
+              print("⚠️ GEMINI_API_KEY not set, using default changelog")
+              changelog = "## What's Changed\n\n"
+              with open('commits.txt', 'r') as f:
+                  changelog += f.read()
+              with open('changelog.md', 'w') as f:
+                  f.write(changelog)
+              exit(0)
+
+          # Read commits
+          with open('commits.txt', 'r') as f:
+              commits = f.read()
+
+          # Prepare Gemini API request
+          url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key={api_key}"
+
+          prompt = f"""Згенеруй професійний changelog для релізу кастомної інтеграції Home Assistant на основі цих комітів:
+
+                      {commits}
+
+                      Форматуй changelog наступним чином:
+                      - Почни з короткого опису (1-2 речення)
+                      - Групуй зміни за категоріями: Нові можливості, Виправлення помилок, Покращення, Документація, Внутрішні зміни
+                      - Використовуй емодзі
+                      - Використовуй зрозумілу, дружню до користувача мову
+                      - Будь стислим та професійним
+                      - Використовуй markdown форматування
+                      - Не включай хеші комітів або імена авторів у фінальному виводі
+
+                      Виведи тільки контент changelog українською мовою, без додаткових коментарів."""
+
+          data = {
+              "contents": [{
+                  "parts": [{"text": prompt}]
+              }],
+              "generationConfig": {
+                  "temperature": 0.7,
+                  "maxOutputTokens": 2048
+              }
+          }
+
+          req = urllib.request.Request(
+              url,
+              data=json.dumps(data).encode('utf-8'),
+              headers={'Content-Type': 'application/json'}
+          )
+
+          try:
+              with urllib.request.urlopen(req, timeout=30) as response:
+                  result = json.loads(response.read().decode('utf-8'))
+
+              changelog = result['candidates'][0]['content']['parts'][0]['text']
+
+              # Save changelog to file
+              with open('changelog.md', 'w') as f:
+                  f.write(changelog.strip())
+
+              print("✅ Changelog generated successfully")
+              print("\n--- Generated Changelog ---")
+              print(changelog)
+              print("--- End of Changelog ---\n")
+
+          except urllib.error.HTTPError as e:
+              print(f"⚠️ Gemini API error: {e.code} - {e.reason}")
+              print(f"Response: {e.read().decode('utf-8')}")
+              print("Falling back to default changelog")
+
+              changelog = "## What's Changed\n\n" + commits
+              with open('changelog.md', 'w') as f:
+                  f.write(changelog)
+
+          except Exception as e:
+              print(f"⚠️ Error generating changelog: {e}")
+              print("Falling back to default changelog")
+
+              changelog = "## What's Changed\n\n" + commits
+              with open('changelog.md', 'w') as f:
+                  f.write(changelog)
+          EOF
+
+      - name: Show generated changelog
+        run: |
+          echo "=== Generated Changelog ==="
+          cat changelog.md
+          echo "=========================="
+
+      - name: Commit version update
+        run: |
+          git add custom_components/jaam_ha/manifest.json
+          git commit -m "chore: bump version to ${{ inputs.version }}"
+
+      - name: Create and push tag
+        run: |
+          git tag -a "${{ inputs.version }}" -m "Release ${{ inputs.version }}"
+          git push origin main
+          git push origin "${{ inputs.version }}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.version }}
+          name: ${{ inputs.release_type == 'beta' && format('Beta {0}', inputs.version) || inputs.version }}
+          body_path: changelog.md
+          draft: false
+          prerelease: ${{ inputs.release_type == 'beta' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        if: success()
+        run: |
+          if [ "${{ inputs.release_type }}" = "beta" ]; then
+            echo "### ✅ Beta Реліз Створено!" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ✅ Реліз Створено!" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Версія**: ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Тег**: ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Тип релізу**: ${{ inputs.release_type }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 [Переглянути реліз](https://github.com/${{ github.repository }}/releases/tag/${{ inputs.version }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "#### 📋 Changelog" >> $GITHUB_STEP_SUMMARY
+          cat changelog.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -f commits.txt changelog.md
