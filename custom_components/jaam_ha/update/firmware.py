@@ -26,8 +26,9 @@ if TYPE_CHECKING:
 FIRMWARE_REPO_URL = "https://github.com/J-A-A-M/jaam_fusion"
 GITHUB_API_URL = "https://api.github.com/repos/J-A-A-M/jaam_fusion"
 
-# Regex pattern for parsing version strings (e.g., 5.0, 5.0.1, 5.0-b32, 5.0.1-b32)
-VERSION_PATTERN = re.compile(r"^(\d+)\.(\d+)(?:\.(\d+))?(?:-b(\d+))?$")
+# Regex pattern for parsing version strings (e.g., 5.0, 5.0.1, 5.0-b32, 5.0.1-b32, 5.0-b32-s3, 5.0.2-c3)
+# Chip type suffixes (c3, s3, etc.) are matched but ignored during version comparison
+VERSION_PATTERN = re.compile(r"^(\d+)\.(\d+)(?:\.(\d+))?(?:-b(\d+))?(?:-[cs]\d+)?$")
 
 ENTITY_DESCRIPTIONS = (
     UpdateEntityDescription(
@@ -43,18 +44,24 @@ ENTITY_DESCRIPTIONS = (
 def parse_version(version: str) -> tuple[int, int, int, int] | None:
     """Parse version string into comparable tuple.
 
+    Chip type suffixes (e.g., -c3, -s3) are ignored during parsing and comparison.
+
     Args:
-        version: Version string (e.g., "5.0", "5.0.1", "5.0-b32", "5.0.1-b32")
+        version: Version string (e.g., "5.0", "5.0.1", "5.0-b32", "5.0.1-b32",
+                 "5.0-b32-s3", "5.0.2-c3")
 
     Returns:
         Tuple of (major, minor, patch, beta) where beta is 0 for release versions
         or beta number for beta versions. Returns None if parsing fails.
+        Chip type suffixes are not included in the tuple.
 
     Examples:
         "5.0" -> (5, 0, 0, 0)
         "5.0.1" -> (5, 0, 1, 0)
         "5.0-b32" -> (5, 0, 0, 32)
         "5.0.1-b32" -> (5, 0, 1, 32)
+        "5.0-b32-s3" -> (5, 0, 0, 32)  # s3 chip suffix ignored
+        "5.0.2-c3" -> (5, 0, 2, 0)  # c3 chip suffix ignored
     """
     match = VERSION_PATTERN.match(version)
     if not match:
