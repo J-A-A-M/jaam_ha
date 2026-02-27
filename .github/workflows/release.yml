@@ -16,6 +16,8 @@ on:
           - beta
         default: production
 
+run-name: Release ${{ inputs.version }} (${{ inputs.release_type }})
+
 permissions:
   contents: write
 
