@@ -129,7 +129,8 @@ jobs:
             fi
 
             # Створюємо промпт для AI
-            PROMPT="Ти - AI асистент для створення changelog для Home Assistant інтеграції \"JAAM HA\".
+            read -r -d '' PROMPT <<EOF || true
+            Ти - AI асистент для створення changelog для Home Assistant інтеграції "JAAM HA".
 
             Проаналізуй наступні коміти та створи професійний changelog українською мовою у форматі Markdown.
 
@@ -174,7 +175,8 @@ jobs:
             - Підкресли найважливіші зміни
             - НЕ додавай секції про завантаження або встановлення
 
-            ВИВОДЬ ТІЛЬКИ MARKDOWN БЕЗ ВСТУПНИХ ФРАЗ!"
+            ВИВОДЬ ТІЛЬКИ MARKDOWN БЕЗ ВСТУПНИХ ФРАЗ!
+            EOF
 
             # Створюємо JSON payload
             JSON_PAYLOAD=$(jq -n \
