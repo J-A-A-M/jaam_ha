@@ -131,7 +131,7 @@ jobs:
             fi
 
             # Створюємо промпт для AI
-            read -r -d '' PROMPT <<EOF || true
+            PROMPT=$(cat <<'PROMPT_END'
             Ти - AI асистент для створення changelog для Home Assistant інтеграції "JAAM HA".
 
             Проаналізуй наступні коміти та створи професійний changelog українською мовою у форматі Markdown.
@@ -139,7 +139,7 @@ jobs:
             ВАЖЛИВО - ФОРМАТ ВИВОДУ:
             - Виводь ТІЛЬКИ markdown контент changelog
             - НЕ додавай жодних вступних фраз або пояснень
-            - Почни відразу з заголовку (${RELEASE_HEADER})
+            - Почни відразу з заголовку (__RELEASE_HEADER__)
             - НЕ пиши "Ось оновлений список", "Ось changelog" або подібне
 
             ВАЖЛИВО: Ігноруй технічні коміти, які не впливають на функціональність інтеграції:
@@ -152,13 +152,13 @@ jobs:
             Включай тільки зміни, які впливають на роботу інтеграції або додають нові можливості користувачам.
 
             Коміти:
-            ${COMMITS}
+            __COMMITS__
 
             Створи changelog ТОЧНО з такою структурою:
 
-            ${RELEASE_HEADER}
+            __RELEASE_HEADER__
 
-            ${RELEASE_WARNING}
+            __RELEASE_WARNING__
 
             ## Що нового
 
@@ -178,7 +178,12 @@ jobs:
             - НЕ додавай секції про завантаження або встановлення
 
             ВИВОДЬ ТІЛЬКИ MARKDOWN БЕЗ ВСТУПНИХ ФРАЗ!
-            EOF
+            PROMPT_END
+            )
+            # Замінюємо плейсхолдери на реальні значення
+            PROMPT="${PROMPT//__RELEASE_HEADER__/$RELEASE_HEADER}"
+            PROMPT="${PROMPT//__RELEASE_WARNING__/$RELEASE_WARNING}"
+            PROMPT="${PROMPT//__COMMITS__/$COMMITS}"
 
             # Створюємо JSON payload
             JSON_PAYLOAD=$(jq -n \
