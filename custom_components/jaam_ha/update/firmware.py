@@ -71,6 +71,28 @@ def parse_version(version: str) -> tuple[int, int, int, int] | None:
     return (int(major), int(minor), int(patch) if patch else 0, int(beta) if beta else 0)
 
 
+def strip_chip_suffix(version: str) -> str:
+    """Strip chip type suffix from version string.
+
+    Removes chip-specific suffixes (e.g., -c3, -s3) from version strings
+    to get the base version for GitHub release lookups.
+
+    Args:
+        version: Version string (e.g., "5.0.1-b32-s3", "5.0.2-c3")
+
+    Returns:
+        Version string without chip suffix (e.g., "5.0.1-b32", "5.0.2")
+
+    Examples:
+        "5.0.1-b32-s3" -> "5.0.1-b32"
+        "5.0.2-c3" -> "5.0.2"
+        "5.0.1" -> "5.0.1"
+    """
+    # Pattern to match chip suffix at the end: -c3, -s3, etc.
+    chip_suffix_pattern = re.compile(r"-[cs]\d+$")
+    return chip_suffix_pattern.sub("", version)
+
+
 class JaamHAFirmwareUpdate(UpdateEntity, JaamHAEntity):
     """Firmware update entity class."""
 
@@ -216,12 +238,14 @@ class JaamHAFirmwareUpdate(UpdateEntity, JaamHAEntity):
 
         If latest_version is available, returns URL to specific release tag.
         Otherwise returns URL to the releases page.
+        Chip suffixes are stripped before constructing the URL.
         """
         version = self.latest_version
         if version:
-            # GitHub releases use version without 'v' prefix (e.g., 5.0.1)
-            # Support versions like: 5.0.1, 5.1, 5.1.3-b32
-            return f"{FIRMWARE_REPO_URL}/releases/tag/{version}"
+            # Strip chip suffix (e.g., -c3, -s3) before constructing GitHub URL
+            # GitHub releases use version without chip suffix (e.g., 5.0.1, 5.0.1-b32)
+            base_version = strip_chip_suffix(version)
+            return f"{FIRMWARE_REPO_URL}/releases/tag/{base_version}"
 
         # Fallback to releases page if no version available
         return f"{FIRMWARE_REPO_URL}/releases"
@@ -231,6 +255,7 @@ class JaamHAFirmwareUpdate(UpdateEntity, JaamHAEntity):
 
         Fetches release notes from GitHub API and caches them.
         The returned string can contain markdown.
+        Chip suffixes are stripped before querying GitHub API.
         """
         version = self.latest_version
         if not version:
@@ -240,10 +265,14 @@ class JaamHAFirmwareUpdate(UpdateEntity, JaamHAEntity):
         if version in self._release_notes_cache:
             return self._release_notes_cache[version]
 
+        # Strip chip suffix (e.g., -c3, -s3) before querying GitHub
+        # GitHub releases don't include chip-specific tags
+        base_version = strip_chip_suffix(version)
+
         # Fetch release notes from GitHub
         try:
             session = async_get_clientsession(self.hass)
-            url = f"{GITHUB_API_URL}/releases/tags/{version}"
+            url = f"{GITHUB_API_URL}/releases/tags/{base_version}"
 
             async with asyncio.timeout(10):
                 async with session.get(
