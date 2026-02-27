@@ -131,16 +131,15 @@ jobs:
             fi
 
             # Створюємо промпт для AI
-            PROMPT=$(cat <<'PROMPT_END'
-            Ти - AI асистент для створення changelog для Home Assistant інтеграції "JAAM HA".
+            PROMPT="Ти - AI асистент для створення changelog для Home Assistant інтеграції \"JAAM HA\".
 
             Проаналізуй наступні коміти та створи професійний changelog українською мовою у форматі Markdown.
 
             ВАЖЛИВО - ФОРМАТ ВИВОДУ:
             - Виводь ТІЛЬКИ markdown контент changelog
             - НЕ додавай жодних вступних фраз або пояснень
-            - Почни відразу з заголовку (__RELEASE_HEADER__)
-            - НЕ пиши "Ось оновлений список", "Ось changelog" або подібне
+            - Почни відразу з заголовку (${RELEASE_HEADER})
+            - НЕ пиши \"Ось оновлений список\", \"Ось changelog\" або подібне
 
             ВАЖЛИВО: Ігноруй технічні коміти, які не впливають на функціональність інтеграції:
             - Зміни в GitHub Actions (.github/workflows)
@@ -152,13 +151,13 @@ jobs:
             Включай тільки зміни, які впливають на роботу інтеграції або додають нові можливості користувачам.
 
             Коміти:
-            __COMMITS__
+            ${COMMITS}
 
             Створи changelog ТОЧНО з такою структурою:
 
-            __RELEASE_HEADER__
+            ${RELEASE_HEADER}
 
-            __RELEASE_WARNING__
+            ${RELEASE_WARNING}
 
             ## Що нового
 
@@ -177,13 +176,7 @@ jobs:
             - Підкресли найважливіші зміни
             - НЕ додавай секції про завантаження або встановлення
 
-            ВИВОДЬ ТІЛЬКИ MARKDOWN БЕЗ ВСТУПНИХ ФРАЗ!
-            PROMPT_END
-            )
-            # Замінюємо плейсхолдери на реальні значення
-            PROMPT="${PROMPT//__RELEASE_HEADER__/$RELEASE_HEADER}"
-            PROMPT="${PROMPT//__RELEASE_WARNING__/$RELEASE_WARNING}"
-            PROMPT="${PROMPT//__COMMITS__/$COMMITS}"
+            ВИВОДЬ ТІЛЬКИ MARKDOWN БЕЗ ВСТУПНИХ ФРАЗ!"
 
             # Створюємо JSON payload
             JSON_PAYLOAD=$(jq -n \
