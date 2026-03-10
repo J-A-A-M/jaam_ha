@@ -398,6 +398,7 @@ class JaamHAApiClient:
             "fw_version": data.get("fw_version"),
             "fw_latest": data.get("fw_latest"),
             "map_mode_id": data.get("map_mode_id"),
+            "display_mode_id": data.get("display_mode_id"),
             "home_region": data.get("home_region"),
             "home_alert_flags": data.get("home_alert_flags"),
             "home_district_temp": data.get("home_district_temp"),
@@ -566,6 +567,10 @@ class JaamHAApiClient:
             if msg_type == "map_mode_change":
                 if self._data:
                     self._data["map_mode_id"] = data.get("map_mode_id")
+
+            elif msg_type == "display_mode_change":
+                if self._data:
+                    self._data["display_mode_id"] = data.get("display_mode_id")
 
             elif msg_type == "lamp_change":
                 lamp_data = data.get("lamp", {})
