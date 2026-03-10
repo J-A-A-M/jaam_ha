@@ -679,6 +679,26 @@ class JaamHAApiClient:
 
         await self._send_command(command)
 
+    async def async_set_display_mode(self, mode: str | int) -> None:
+        """
+        Set display mode on device.
+
+        Args:
+            mode: Mode name (off, clock, weather, technical, microclimate, combined) or mode ID (0, 1, 2, 3, 4, 9).
+
+        Raises:
+            JaamHAApiClientCommunicationError: If command fails.
+
+        """
+        command: dict[str, Any] = {"type": "set_display_mode"}
+
+        if isinstance(mode, int):
+            command["mode_id"] = mode
+        else:
+            command["mode"] = mode
+
+        await self._send_command(command)
+
     async def async_set_lamp(
         self,
         color: str | None = None,

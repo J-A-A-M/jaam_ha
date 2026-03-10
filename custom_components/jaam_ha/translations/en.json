@@ -106,6 +106,17 @@
           "flag": "Flag",
           "lamp": "Lamp"
         }
+      },
+      "display_mode": {
+        "name": "Display Mode",
+        "state": {
+          "off": "Off",
+          "clock": "Clock",
+          "weather": "Weather",
+          "technical": "Technical Info",
+          "microclimate": "Microclimate",
+          "combined": "Combined"
+        }
       }
     },
     "sensor": {
