@@ -102,7 +102,9 @@
         "state": {
           "disabled": "Disabled",
           "alert": "Alert",
+          "energy_system": "Energy System",
           "weather": "Weather",
+          "radiation": "Radiation",
           "flag": "Flag",
           "random": "Random Colors",
           "lamp": "Lamp"
@@ -113,7 +115,9 @@
         "state": {
           "off": "Off",
           "clock": "Clock",
+          "energy_system": "Energy System",
           "weather": "Weather",
+          "radiation": "Radiation",
           "technical": "Technical Info",
           "microclimate": "Microclimate",
           "combined": "Combined"

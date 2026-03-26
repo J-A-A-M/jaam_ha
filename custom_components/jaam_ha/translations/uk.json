@@ -102,7 +102,9 @@
         "state": {
           "disabled": "Вимкнено",
           "alert": "Тривога",
+          "energy_system": "Енергосистема",
           "weather": "Погода",
+          "radiation": "Радіація",
           "flag": "Прапор",
           "random": "Випадкові кольори",
           "lamp": "Лампа"
@@ -113,7 +115,9 @@
         "state": {
           "off": "Вимкнено",
           "clock": "Годинник",
+          "energy_system": "Енергосистема",
           "weather": "Погода",
+          "radiation": "Радіація",
           "technical": "Технічна інформація",
           "microclimate": "Мікроклімат",
           "combined": "Комбінований"
