@@ -15,3 +15,52 @@ PARALLEL_UPDATES = 1
 CONF_HOST = "host"
 CONF_PORT = "port"
 DEFAULT_PORT = 81
+
+# Map mode IDs
+MAP_MODE_DISABLED = 0
+MAP_MODE_ALERT = 1
+MAP_MODE_WEATHER = 2
+MAP_MODE_FLAG = 3
+MAP_MODE_RANDOM = 4
+MAP_MODE_LAMP = 5
+
+# Map modes mapping (option_name -> mode_id)
+MAP_MODES: dict[str, int] = {
+    "disabled": MAP_MODE_DISABLED,
+    "alert": MAP_MODE_ALERT,
+    "weather": MAP_MODE_WEATHER,
+    "flag": MAP_MODE_FLAG,
+    "random": MAP_MODE_RANDOM,
+    "lamp": MAP_MODE_LAMP,
+}
+
+# Map mode options order for select entity
+MAP_MODE_ORDER: list[str] = ["disabled", "alert", "weather", "flag", "random", "lamp"]
+
+# Display mode IDs
+DISPLAY_MODE_OFF = 0
+DISPLAY_MODE_CLOCK = 1
+DISPLAY_MODE_WEATHER = 2
+DISPLAY_MODE_TECHNICAL = 3
+DISPLAY_MODE_MICROCLIMATE = 4
+DISPLAY_MODE_COMBINED = 9
+
+# Display modes mapping (option_name -> mode_id)
+DISPLAY_MODES: dict[str, int] = {
+    "off": DISPLAY_MODE_OFF,
+    "clock": DISPLAY_MODE_CLOCK,
+    "weather": DISPLAY_MODE_WEATHER,
+    "technical": DISPLAY_MODE_TECHNICAL,
+    "microclimate": DISPLAY_MODE_MICROCLIMATE,
+    "combined": DISPLAY_MODE_COMBINED,
+}
+
+# Display mode options order for select entity
+DISPLAY_MODE_ORDER: list[str] = [
+    "off",
+    "clock",
+    "weather",
+    "technical",
+    "microclimate",
+    "combined",
+]

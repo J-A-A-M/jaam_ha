@@ -27,10 +27,13 @@ Uncomment and customize these badges if you want to use them:
 - **Location Info**: Track home district name and temperature
 - **Room Climate**: Monitor room temperature, humidity, and pressure (mmHg)
 - **Light Level Monitoring**: Track room illuminance in lux (if sensor available)
-- **Dynamic Sensors**: Sensors auto-appear when hardware is connected, auto-hide when disconnected
+- **Hardware-Aware Entities**: Entities automatically adapt to device capabilities
+  - Sensors appear only when hardware is present and supported by firmware
+  - Unsupported sensors are completely removed (not just unavailable)
+  - Select options dynamically filtered based on device capabilities
 - **System Diagnostics**: Monitor device health (memory, uptime, WiFi signal, CPU temperature)
 - **Smart Light Control**: Control integrated lamp with brightness and color
-- **Map Display**: Select different map visualization modes
+- **Flexible Display Modes**: Map and display mode options adapt to your device's capabilities
 - **Reconfigurable**: Change host/port anytime without removing the integration
 
 **This integration will set up the following platforms.**
@@ -39,8 +42,8 @@ Platform | Description
 -- | --
 `binary_sensor` | WebSocket connection status and 11 alert type sensors
 `light` | Lamp control with brightness and color
-`select` | Map mode selection
-`sensor` | Home district, district temperature, room climate (temperature, humidity, pressure, light level), and system diagnostics
+`select` | Map mode and display mode selection (options dynamically filtered by device capabilities)
+`sensor` | Home district, district temperature, room climate (hardware-dependent), and system diagnostics
 `update` | Firmware update management with progress tracking and release notes
 
 ## 🚀 Quick Start
@@ -124,9 +127,11 @@ The integration creates several entities for your JAAM device:
 
 - **Binary Sensors**: WebSocket connection status + 11 alert type sensors
 - **Light**: Lamp control with brightness and color
-- **Select**: Map display mode selection
-- **Sensors**: Home district, temperature, room climate (dynamic), and 6 system diagnostic sensors
+- **Select**: Map mode and display mode selection (options adapt to device capabilities)
+- **Sensors**: Home district, temperature, room climate (hardware-dependent), and 6 system diagnostic sensors
 - **Update**: Firmware update management with progress tracking
+
+> **Note**: Available sensors and select options automatically adapt to your device's hardware capabilities. Only supported entities appear in Home Assistant.
 
 Find all entities in **Settings** → **Devices & Services** → **JAAM** → click on the device.
 
@@ -169,7 +174,12 @@ Each alert sensor:
 ### Select
 
 - **Map Mode**: Choose map visualization mode
-  - Different display options for the device map
+  - Options include: Disabled, Alert, Weather, Flag, Random Colors, Lamp
+  - Available options dynamically filtered based on device capabilities
+  - Real-time sync with device
+- **Display Mode**: Choose display visualization mode
+  - Options include: Off, Clock, Weather, Technical, Microclimate, Combined
+  - Available options dynamically filtered based on device capabilities
   - Real-time sync with device
 
 ### Update
@@ -191,17 +201,20 @@ Each alert sensor:
 - **Home District Temperature**: Temperature in your district (°C)
   - Real-time temperature monitoring
 
-#### Room Climate (Dynamic - Auto-detected)
+#### Room Climate (Hardware-Dependent)
 
-> **Note**: These sensors appear automatically when the device has the corresponding hardware connected, and disappear when disconnected.
+> **Note**: These sensors appear only when supported by your device's hardware and firmware. The device reports which sensors are available via the `supported_sensors` field. Unsupported sensors are completely removed from Home Assistant rather than showing as unavailable.
 
 - **Room Temperature**: Room temperature (°C)
 - **Room Humidity**: Room humidity (%)
 - **Room Pressure**: Room pressure (mmHg)
 - **Light Level**: Room illuminance level (lux)
-  - All values update in real-time
-  - Sensors become unavailable if hardware is disconnected
-  - Sensors automatically reappear when hardware is reconnected
+
+**Dynamic Behavior:**
+- Sensors automatically appear when hardware is connected and firmware reports support
+- Unsupported sensors are removed from Entity Registry (not just marked unavailable)
+- Sensors reappear automatically if hardware is reconnected and firmware enables support
+- All values update in real-time via WebSocket connection
 
 #### System Diagnostics (All Diagnostic Category)
 

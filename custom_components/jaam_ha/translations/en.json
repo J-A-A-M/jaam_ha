@@ -104,6 +104,7 @@
           "alert": "Alert",
           "weather": "Weather",
           "flag": "Flag",
+          "random": "Random Colors",
           "lamp": "Lamp"
         }
       },

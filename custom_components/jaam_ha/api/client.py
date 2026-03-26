@@ -411,11 +411,21 @@ class JaamHAApiClient:
             "websocket_uptime": data.get("websocket_uptime"),
             "lamp_color": lamp_data.get("color"),
             "lamp_brightness": lamp_data.get("brightness"),
-            "climate_temp": data.get("climate_temp"),
-            "climate_humidity": data.get("climate_humidity"),
-            "climate_pressure": data.get("climate_pressure"),
-            "light_level": data.get("light_level"),
+            "supported_sensors": data.get("supported_sensors"),
+            "supported_map_modes": data.get("supported_map_modes"),
+            "supported_display_modes": data.get("supported_display_modes"),
         }
+
+        # Add sensor fields only if present in data (device may not send them if not supported)
+        # This allows proper detection of unsupported sensors
+        if "climate_temp" in data:
+            device_data["climate_temp"] = data["climate_temp"]
+        if "climate_humidity" in data:
+            device_data["climate_humidity"] = data["climate_humidity"]
+        if "climate_pressure" in data:
+            device_data["climate_pressure"] = data["climate_pressure"]
+        if "light_level" in data:
+            device_data["light_level"] = data["light_level"]
 
         LOGGER.info(
             "Parsed device data - chip_id: %s, fw_version: %s",
@@ -607,13 +617,17 @@ class JaamHAApiClient:
 
             elif msg_type == "climate_data_change":
                 if self._data:
-                    self._data["climate_temp"] = data.get("climate_temp")
-                    self._data["climate_humidity"] = data.get("climate_humidity")
-                    self._data["climate_pressure"] = data.get("climate_pressure")
+                    # Only update fields that are present in the message
+                    if "climate_temp" in data:
+                        self._data["climate_temp"] = data["climate_temp"]
+                    if "climate_humidity" in data:
+                        self._data["climate_humidity"] = data["climate_humidity"]
+                    if "climate_pressure" in data:
+                        self._data["climate_pressure"] = data["climate_pressure"]
 
             elif msg_type == "light_level_change":
-                if self._data:
-                    self._data["light_level"] = data.get("light_level")
+                if self._data and "light_level" in data:
+                    self._data["light_level"] = data["light_level"]
 
             elif msg_type == "firmware_update":
                 if self._data:

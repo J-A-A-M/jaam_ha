@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from custom_components.jaam_ha.const import MAP_MODE_ALERT, MAP_MODE_LAMP
 from custom_components.jaam_ha.entity import JaamHAEntity
 from homeassistant.components.light import ATTR_BRIGHTNESS, ATTR_RGB_COLOR, LightEntity, LightEntityDescription
 from homeassistant.components.light.const import ColorMode
@@ -38,9 +39,9 @@ class JaamHALampLight(JaamHAEntity, LightEntity):
     @property
     def is_on(self) -> bool:
         """Return true if light is on."""
-        # Light is on if we have data and map_mode is LAMP (mode_id = 4)
+        # Light is on if we have data and map_mode is LAMP (mode_id = 5)
         if self.coordinator.data:
-            return self.coordinator.data.get("map_mode_id") == 4
+            return self.coordinator.data.get("map_mode_id") == MAP_MODE_LAMP
         return False
 
     @property
@@ -102,8 +103,8 @@ class JaamHALampLight(JaamHAEntity, LightEntity):
             if brightness_percent is None:
                 brightness_percent = 100
 
-        # First, set lamp mode (mode_id = 4)
-        await client.async_set_map_mode(4)
+        # First, set lamp mode (mode_id = 5)
+        await client.async_set_map_mode(MAP_MODE_LAMP)
 
         # Then set color and brightness
         await client.async_set_lamp(color=color_hex, brightness=brightness_percent)
@@ -116,7 +117,7 @@ class JaamHALampLight(JaamHAEntity, LightEntity):
         client = self.coordinator.config_entry.runtime_data.client
 
         # Set map mode to ALERTS (mode_id = 1)
-        await client.async_set_map_mode(1)
+        await client.async_set_map_mode(MAP_MODE_ALERT)
 
         # Request coordinator refresh to update state
         await self.coordinator.async_request_refresh()
