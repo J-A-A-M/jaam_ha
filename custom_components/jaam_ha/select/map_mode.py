@@ -16,7 +16,7 @@ ENTITY_DESCRIPTIONS = (
     SelectEntityDescription(
         key="map_mode",
         translation_key="map_mode",
-        icon="mdi:map-legend",
+        icon="mdi:layers",
         has_entity_name=True,
     ),
 )

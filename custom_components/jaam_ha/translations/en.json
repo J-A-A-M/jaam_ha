@@ -124,6 +124,17 @@
         }
       }
     },
+    "switch": {
+      "night_mode": {
+        "name": "Night Mode"
+      },
+      "display": {
+        "name": "Display"
+      },
+      "map": {
+        "name": "Map"
+      }
+    },
     "sensor": {
       "home_district": {
         "name": "Home District"

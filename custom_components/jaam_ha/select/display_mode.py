@@ -16,7 +16,7 @@ ENTITY_DESCRIPTIONS = (
     SelectEntityDescription(
         key="display_mode",
         translation_key="display_mode",
-        icon="mdi:monitor",
+        icon="mdi:monitor-dashboard",
         has_entity_name=True,
     ),
 )

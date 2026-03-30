@@ -124,6 +124,17 @@
         }
       }
     },
+    "switch": {
+      "night_mode": {
+        "name": "Нічний режим"
+      },
+      "display": {
+        "name": "Дисплей"
+      },
+      "map": {
+        "name": "Мапа"
+      }
+    },
     "sensor": {
       "home_district": {
         "name": "Домашній регіон"

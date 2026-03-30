@@ -83,3 +83,10 @@ DISPLAY_MODE_ORDER: list[str] = [
     "microclimate",
     "combined",
 ]
+
+# Mapping from supported_sensors names to switch keys
+SUPPORTED_SWITCH_MAPPING: dict[str, str] = {
+    "night_mode": "night_mode",
+    "map": "map",
+    "display": "display",
+}

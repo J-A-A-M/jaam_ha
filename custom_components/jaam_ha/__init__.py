@@ -43,6 +43,7 @@ PLATFORMS: list[Platform] = [
     Platform.SELECT,
     Platform.SENSOR,
     Platform.UPDATE,
+    Platform.SWITCH,
 ]
 
 # This integration is configured via config entries only

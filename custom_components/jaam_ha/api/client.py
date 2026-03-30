@@ -427,6 +427,14 @@ class JaamHAApiClient:
         if "light_level" in data:
             device_data["light_level"] = data["light_level"]
 
+        # Add switch fields if present (map API keys to entity keys)
+        if "night_mode" in data:
+            device_data["night_mode"] = data["night_mode"]
+        if "map_enabled" in data:
+            device_data["map"] = data["map_enabled"]
+        if "display_enabled" in data:
+            device_data["display"] = data["display_enabled"]
+
         LOGGER.info(
             "Parsed device data - chip_id: %s, fw_version: %s",
             device_data.get("chip_id"),
@@ -629,6 +637,18 @@ class JaamHAApiClient:
                 if self._data and "light_level" in data:
                     self._data["light_level"] = data["light_level"]
 
+            elif msg_type == "night_mode_change":
+                if self._data and "night_mode" in data:
+                    self._data["night_mode"] = data["night_mode"]
+
+            elif msg_type == "map_enabled_change":
+                if self._data and "map_enabled" in data:
+                    self._data["map"] = data["map_enabled"]
+
+            elif msg_type == "display_enabled_change":
+                if self._data and "display_enabled" in data:
+                    self._data["display"] = data["display_enabled"]
+
             elif msg_type == "firmware_update":
                 if self._data:
                     self._data["fw_latest"] = data.get("fw_latest")
@@ -757,6 +777,60 @@ class JaamHAApiClient:
         command = {
             "type": "set_home_region",
             "region_id": region_id,
+        }
+
+        await self._send_command(command)
+
+    async def async_set_night_mode(self, enabled: bool) -> None:
+        """
+        Set night mode on device.
+
+        Args:
+            enabled: True to enable night mode, False to disable.
+
+        Raises:
+            JaamHAApiClientCommunicationError: If command fails.
+
+        """
+        command = {
+            "type": "set_night_mode",
+            "enabled": enabled,
+        }
+
+        await self._send_command(command)
+
+    async def async_set_map_enabled(self, enabled: bool) -> None:
+        """
+        Set map enabled on device.
+
+        Args:
+            enabled: True to enable map, False to disable.
+
+        Raises:
+            JaamHAApiClientCommunicationError: If command fails.
+
+        """
+        command = {
+            "type": "set_map_enabled",
+            "enabled": enabled,
+        }
+
+        await self._send_command(command)
+
+    async def async_set_display_enabled(self, enabled: bool) -> None:
+        """
+        Set display enabled on device.
+
+        Args:
+            enabled: True to enable display, False to disable.
+
+        Raises:
+            JaamHAApiClientCommunicationError: If command fails.
+
+        """
+        command = {
+            "type": "set_display_enabled",
+            "enabled": enabled,
         }
 
         await self._send_command(command)

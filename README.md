@@ -44,6 +44,7 @@ Platform | Description
 `light` | Lamp control with brightness and color
 `select` | Map mode and display mode selection (options dynamically filtered by device capabilities)
 `sensor` | Home district, district temperature, room climate (hardware-dependent), and system diagnostics
+`switch` | Device feature toggles (night mode, display, map) - hardware-dependent
 `update` | Firmware update management with progress tracking and release notes
 
 ## 🚀 Quick Start
@@ -129,9 +130,10 @@ The integration creates several entities for your JAAM device:
 - **Light**: Lamp control with brightness and color
 - **Select**: Map mode and display mode selection (options adapt to device capabilities)
 - **Sensors**: Home district, temperature, room climate (hardware-dependent), and 6 system diagnostic sensors
+- **Switches**: Device feature toggles (night mode, display, map) - hardware-dependent
 - **Update**: Firmware update management with progress tracking
 
-> **Note**: Available sensors and select options automatically adapt to your device's hardware capabilities. Only supported entities appear in Home Assistant.
+> **Note**: Available sensors, switches, and select options automatically adapt to your device's hardware capabilities. Only supported entities appear in Home Assistant.
 
 Find all entities in **Settings** → **Devices & Services** → **JAAM** → click on the device.
 
@@ -140,11 +142,13 @@ Find all entities in **Settings** → **Devices & Services** → **JAAM** → cl
 ### Binary Sensors
 
 #### WebSocket Status (Diagnostic)
+
 - Shows real-time WebSocket connection status
 - **On**: Connected and receiving updates
 - **Off**: Connection lost or device offline
 
 #### Alert Sensors
+
 11 separate binary sensors for different threat types (updated in real-time):
 
 - **Air Alert**: General air raid alert
@@ -160,6 +164,7 @@ Find all entities in **Settings** → **Devices & Services** → **JAAM** → cl
 - **Reconnaissance**: Reconnaissance drone alert
 
 Each alert sensor:
+
 - Shows active state (On/Off)
 - Dynamic icon based on alert state
 - Can be used in automations for notifications
@@ -181,6 +186,27 @@ Each alert sensor:
   - Options include: Off, Clock, Weather, Technical, Microclimate, Combined
   - Available options dynamically filtered based on device capabilities
   - Real-time sync with device
+
+### Switches (Hardware-Dependent)
+
+> **Note**: These switches appear only when supported by your device's hardware and firmware. The device reports which features are available via the `supported_sensors` field. Unsupported switches are completely removed from Home Assistant rather than showing as unavailable.
+
+- **Night Mode**: Enable or disable night mode on the device
+  - Controls device night mode behavior
+  - Icon: 🌙 (weather-night)
+- **Display**: Enable or disable the display
+  - Turn device display on/off
+  - Icon: 🖥️ (monitor)
+- **Map**: Enable or disable the map feature
+  - Control map visualization on device
+  - Icon: 🗺️ (map)
+
+**Dynamic Behavior:**
+
+- Switches automatically appear when hardware feature is supported by firmware
+- Unsupported switches are removed from Entity Registry (not just marked unavailable)
+- Switches reappear automatically if firmware enables support
+- All state changes update in real-time via WebSocket connection
 
 ### Update
 
@@ -211,6 +237,7 @@ Each alert sensor:
 - **Light Level**: Room illuminance level (lux)
 
 **Dynamic Behavior:**
+
 - Sensors automatically appear when hardware is connected and firmware reports support
 - Unsupported sensors are removed from Entity Registry (not just marked unavailable)
 - Sensors reappear automatically if hardware is reconnected and firmware enables support
