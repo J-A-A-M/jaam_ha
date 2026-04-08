@@ -14,6 +14,7 @@ import asyncio
 from collections.abc import Callable
 import contextlib
 import json
+import time
 from typing import Any
 
 import aiohttp
@@ -648,6 +649,16 @@ class JaamHAApiClient:
             elif msg_type == "display_enabled_change":
                 if self._data and "display_enabled" in data:
                     self._data["display"] = data["display_enabled"]
+
+            elif msg_type == "button_event":
+                # Handle button event: {"type": "button_event", "buttonId": 1, "event": "click"}
+                # Add timestamp to make each event unique (allows same button to trigger multiple times)
+                if self._data:
+                    self._data["button_event"] = {
+                        "buttonId": data.get("buttonId"),
+                        "event": data.get("event"),
+                        "timestamp": time.time(),
+                    }
 
             elif msg_type == "firmware_update":
                 if self._data:

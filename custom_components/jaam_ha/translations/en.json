@@ -91,6 +91,23 @@
         "name": "WebSocket Status"
       }
     },
+    "event": {
+      "button_events": {
+        "name": "Button Events",
+        "state_attributes": {
+          "button_id": {
+            "name": "Button ID"
+          },
+          "event_type": {
+            "name": "Event Type",
+            "state": {
+              "click": "Click",
+              "long_click": "Long Click"
+            }
+          }
+        }
+      }
+    },
     "light": {
       "lamp": {
         "name": "Lamp"

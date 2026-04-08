@@ -1,5 +1,7 @@
 # JAAM
 
+> [English version](README.en.md) | **[Українська версія](README.md)**
+
 [![GitHub Release][releases-shield]][releases]
 [![GitHub Activity][commits-shield]][commits]
 [![License][license-shield]](LICENSE)
@@ -13,300 +15,477 @@ Uncomment and customize these badges if you want to use them:
 [![Discord][discord-shield]][discord]
 -->
 
-**✨ Develop in the cloud:** Want to contribute or customize this integration? Open it directly in GitHub Codespaces - no local setup required!
+**✨ Розробка в хмарі:** Хочете зробити внесок або налаштувати інтеграцію? Відкрийте її прямо в GitHub Codespaces - локальне налаштування не потрібне!
 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/J-A-A-M/jaam_ha?quickstart=1)
 
-## ✨ Features
+## ✨ Можливості
 
-- **Easy Setup**: Simple configuration through the UI - no YAML required
-- **Automatic Discovery**: Zeroconf support for automatic device detection
-- **Real-time Monitoring**: WebSocket connection for instant updates
-- **Firmware Updates**: Install firmware updates with progress tracking and release notes
-- **Alert System**: 11 separate binary sensors for different threat types
-- **Location Info**: Track home district name and temperature
-- **Room Climate**: Monitor room temperature, humidity, and pressure (mmHg)
-- **Light Level Monitoring**: Track room illuminance in lux (if sensor available)
-- **Hardware-Aware Entities**: Entities automatically adapt to device capabilities
-  - Sensors appear only when hardware is present and supported by firmware
-  - Unsupported sensors are completely removed (not just unavailable)
-  - Select options dynamically filtered based on device capabilities
-- **System Diagnostics**: Monitor device health (memory, uptime, WiFi signal, CPU temperature)
-- **Smart Light Control**: Control integrated lamp with brightness and color
-- **Flexible Display Modes**: Map and display mode options adapt to your device's capabilities
-- **Reconfigurable**: Change host/port anytime without removing the integration
+- **Проста інсталяція**: Налаштування через UI - YAML не потрібен
+- **Автоматичне виявлення**: Підтримка Zeroconf для автоматичного виявлення пристрою
+- **Моніторинг в реальному часі**: WebSocket з'єднання для миттєвих оновлень
+- **Події кнопок**: Події натискання фізичних кнопок для автоматизацій (залежить від апаратури)
+  - Підтримка до 3 кнопок з визначенням натискання та довгого натискання
+  - Динамічні іконки, що показують останню натиснуту кнопку
+  - Ідеально для запуску сцен, керування світлом та користувацьких автоматизацій
+- **Оновлення прошивки**: Інсталяція оновлень прошивки з відстеженням прогресу та примітками до випуску
+- **Система тривог**: 11 окремих бінарних сенсорів для різних типів загроз
+- **Інформ ація про місцезнаходження**: Відстеження назви домашнього регіону та температури
+- **Клімат приміщення**: Моніторинг температури, вологості та тиску в кімнаті (мм рт.ст.)
+- **Моніторинг рівня освітлення**: Відстеження освітленості приміщення в люксах (якщо сенсор доступний)
+- **Адаптивні сутності**: Сутності автоматично адаптуються до можливостей пристрою
+  - Сенсори з'являються тільки коли апаратура присутня та підтримується прошивкою
+  - Непідтримувані сенсори повністю видаляються (а не просто позначаються недоступними)
+  - Опції select динамічно фільтруються на основі можливостей пристрою
+- **Системна діагностика**: Моніторинг стану пристрою (пам'ять, час роботи, сигнал WiFi, температура CPU)
+- **Розумне керування світлом**: Керування вбудованою лампою з яскравістю та кольором
+- **Гнучкі режими дисплею**: Опції режиму мапи та дисплею адаптуються до можливостей вашого пристрою
+- **Можливість реконфігурації**: Змінюйте хост/порт в будь-який час без видалення інтеграції
 
-**This integration will set up the following platforms.**
+**Ця інтеграція налаштовує такі платформи.**
 
-Platform | Description
+Платформа | Опис
 -- | --
-`binary_sensor` | WebSocket connection status and 11 alert type sensors
-`light` | Lamp control with brightness and color
-`select` | Map mode and display mode selection (options dynamically filtered by device capabilities)
-`sensor` | Home district, district temperature, room climate (hardware-dependent), and system diagnostics
-`switch` | Device feature toggles (night mode, display, map) - hardware-dependent
-`update` | Firmware update management with progress tracking and release notes
+`binary_sensor` | Статус WebSocket з'єднання та 11 сенсорів типів тривог
+`event` | Події натискання кнопок (click/long_click) від фізичних кнопок - залежить від апаратури
+`light` | Керування лампою з яскравістю та кольором
+`select` | Вибір режиму мапи та дисплею (опції динамічно фільтруються відповідно до можливостей пристрою)
+`sensor` | Домашній регіон, температура регіону, клімат приміщення (залежить від апаратури) та системна діагностика
+`switch` | Перемикачі функцій пристрою (нічний режим, дисплей, мапа) - залежить від апаратури
+`update` | Керування оновленням прошивки з відстеженням прогресу та примітками до випуску
 
-## 🚀 Quick Start
+## 🚀 Швидкий старт
 
-### Step 1: Install the Integration
+### Крок 1: Встановіть інтеграцію
 
-**Prerequisites:** This integration requires [HACS](https://hacs.xyz/) (Home Assistant Community Store) to be installed.
+**Передумови:** Ця інтеграція вимагає встановленого [HACS](https://hacs.xyz/) (Home Assistant Community Store).
 
-Click the button below to open the integration directly in HACS:
+Натисніть кнопку нижче, щоб відкрити інтеграцію безпосередньо в HACS:
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=J-A-A-M&repository=jaam_ha&category=integration)
 
-Then:
+Потім:
 
-1. Click "Download" to install the integration
-2. **Restart Home Assistant** (required after installation)
+1. Натисніть "Download" для встановлення інтеграції
+2. **Перезапустіть Home Assistant** (обов'язково після встановлення)
 
-> **Note:** The My Home Assistant redirect will first take you to a landing page. Click the button there to open your Home Assistant instance.
+> **Примітка:** Редирект My Home Assistant спочатку переведе вас на сторінку посадки. Натисніть там кнопку, щоб відкрити ваш Home Assistant.
 
 <details>
-<summary>**Manual Installation (Advanced)**</summary>
+<summary>**Ручне встановлення (для досвідчених)**</summary>
 
-If you prefer not to use HACS:
+Якщо ви не хочете використовувати HACS:
 
-1. Download the `custom_components/jaam_ha/` folder from this repository
-2. Copy it to your Home Assistant's `custom_components/` directory
-3. Restart Home Assistant
+1. Завантажте папку `custom_components/jaam_ha/` з цього репозиторію
+2. Скопіюйте її в директорію `custom_components/` вашого Home Assistant
+3. Перезапустіть Home Assistant
 
 </details>
 
-### Step 2: Add and Configure the Integration
+### Крок 2: Додайте та налаштуйте інтеграцію
 
-**Important:** You must have installed the integration first (see Step 1) and restarted Home Assistant!
+**Важливо:** Спочатку ви повинні встановити інтеграцію (див. Крок 1) та перезапустити Home Assistant!
 
-#### Automatic Discovery (Recommended)
+#### Автоматичне виявлення (рекомендовано)
 
-If your JAAM device supports zeroconf, it will be **automatically discovered** by Home Assistant:
+Якщо ваш пристрій JAAM підтримує zeroconf, він буде **автоматично виявлений** Home Assistant:
 
-1. Go to **Settings** → **Devices & Services**
-2. Look for a **"Discovered"** notification for JAAM
-3. Click **"Configure"** on the notification
-4. Verify the host/port and click Submit
+1. Перейдіть до **Налаштування** → **Пристрої та служби**
+2. Знайдіть сповіщення **"Discovered"** для JAAM
+3. Натисніть **"Configure"** на сповіщенні
+4. Перевірте хост/порт та натисніть Submit
 
-> **Note:** Automatic discovery requires your device to broadcast the `_jaam-ws._tcp.local.` service on your network.
+> **Примітка:** Автоматичне виявлення вимагає, щоб ваш пристрій транслював сервіс `_jaam-ws._tcp.local.` у вашій мережі.
 
-#### Option 1: One-Click Setup (Manual)
+#### Варіант 1: Налаштування в один клік (вручну)
 
-If automatic discovery doesn't work, use one-click setup:
+Якщо автоматичне виявлення не працює, використовуйте налаштування в один клік:
 
-Click the button below to open the configuration dialog:
+Натисніть кнопку нижче, щоб відкрити діалог налаштування:
 
 [![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=jaam_ha)
 
-Follow the setup wizard:
+Дотримуйтесь майстра налаштування:
 
-1. Enter your device **Host** (IP address or hostname)
-2. Enter the **Port** (default: 81)
-3. Click Submit
+1. Введіть **хост** вашого пристрою (IP-адреса або ім'я хоста)
+2. Введіть **порт** (за замовчуванням: 81)
+3. Натисніть Submit
 
-That's it! The integration will connect to your JAAM device via WebSocket.
+Ось і все! Інтеграція підключиться до вашого пристрою JAAM через WebSocket.
 
-#### Option 2: Manual Configuration
+#### Варіант 2: Ручне налаштування
 
-1. Go to **Settings** → **Devices & Services**
-2. Click **"+ Add Integration"**
-3. Search for "JAAM"
-4. Follow the same setup steps as Option 1
+1. Перейдіть до **Налаштування** → **Пристрої та служби**
+2. Натисніть **"+ Додати інтеграцію"**
+3. Знайдіть "JAAM"
+4. Дотримуйтесь тих самих кроків налаштування, що й у Варіанті 1
 
-### Step 3: Reconfigure Connection (Optional)
+### Крок 3: Реконфігурація з'єднання (опціонально)
 
-You can change the device connection settings anytime:
+Ви можете змінити налаштування з'єднання пристрою в будь-який час:
 
-1. Go to **Settings** → **Devices & Services**
-2. Find **JAAM**
-3. Click the **3 dots menu** → **Reconfigure**
-4. Update host/port as needed
+1. Перейдіть до **Налаштування** → **Пристрої та служби**
+2. Знайдіть **JAAM**
+3. Натисніть **меню з 3 крапками** → **Реконфігурувати**
+4. Оновіть хост/порт за потреби
 
-### Step 4: Start Using!
+### Крок 4: Почніть використовувати!
 
-The integration creates several entities for your JAAM device:
+Інтеграція створює кілька сутностей для вашого пристрою JAAM:
 
-- **Binary Sensors**: WebSocket connection status + 11 alert type sensors
-- **Light**: Lamp control with brightness and color
-- **Select**: Map mode and display mode selection (options adapt to device capabilities)
-- **Sensors**: Home district, temperature, room climate (hardware-dependent), and 6 system diagnostic sensors
-- **Switches**: Device feature toggles (night mode, display, map) - hardware-dependent
-- **Update**: Firmware update management with progress tracking
+- **Бінарні сенсори**: Статус WebSocket з'єднання + 11 сенсорів типів тривог
+- **Світло**: Керування лампою з яскравістю та кольором
+- **Select**: Вибір режиму мапи та дисплею (опції адаптуються до можливостей пристрою)
+- **Сенсори**: Домашній регіон, температура, клімат приміщення (залежить від апаратури) та 6 системних діагностичних сенсорів
+- **Перемикачі**: Перемикачі функцій пристрою (нічний режим, дисплей, мапа) - залежить від апаратури
+- **Оновлення**: Керування оновленням прошивки з відстеженням прогресу
 
-> **Note**: Available sensors, switches, and select options automatically adapt to your device's hardware capabilities. Only supported entities appear in Home Assistant.
+> **Примітка**: Доступні сенсори, перемикачі та опції select автоматично адаптуються до апаратних можливостей вашого пристрою. В Home Assistant з'являються тільки підтримувані сутності.
 
-Find all entities in **Settings** → **Devices & Services** → **JAAM** → click on the device.
+Знайдіть всі сутності в **Налаштування** → **Пристрої та служби** → **JAAM** → клацніть на пристрій.
 
-## Available Entities
+## Доступні сутності
 
-### Binary Sensors
+### Бінарні сенсори
 
-#### WebSocket Status (Diagnostic)
+#### Статус WebSocket (діагностичний)
 
-- Shows real-time WebSocket connection status
-- **On**: Connected and receiving updates
-- **Off**: Connection lost or device offline
+- Показує статус WebSocket з'єднання в реальному часі
+- **Увімкнено**: Підключено та отримуються оновлення
+- **Вимкнено**: З'єднання втрачено або пристрій офлайн
 
-#### Alert Sensors
+#### Сенсори тривог
 
-11 separate binary sensors for different threat types (updated in real-time):
+11 окремих бінарних сенсорів для різних типів загроз (оновлюються в реальному часі):
 
-- **Air Alert**: General air raid alert
-- **Artillery**: Artillery threat alert
-- **Urban Combat**: Urban combat operations alert
-- **Chemical**: Chemical hazard alert
-- **Nuclear**: Nuclear threat alert
-- **Drones**: Drone attack alert
-- **Missiles**: Missile threat alert
-- **KAB (Air Bombs)**: Guided air bomb alert
-- **Ballistic Missiles**: Ballistic missile alert
-- **Explosion Hazard**: Explosion danger alert
-- **Reconnaissance**: Reconnaissance drone alert
+- **Повітряна тривога**: Загальна повітряна тривога
+- **Артилерія**: Загроза артилерії
+- **Вуличні бої**: Тривога вуличних боїв
+- **Хімічна**: Тривога хімічної загрози
+- **Ядерна**: Тривога ядерної загрози
+- **Дрони**: Тривога атаки дронів
+- **Ракети**: Тривога ракетної загрози
+- **КАБи (авіабомби)**: Тривога керованих авіабомб
+- **Балістика**: Тривога балістичних ракет
+- **Небезпека вибухів**: Небезпека вибуху
+- **Розвідка**: Тривога розвідувальних дронів
 
-Each alert sensor:
+Кожен сенсор тривоги:
 
-- Shows active state (On/Off)
-- Dynamic icon based on alert state
-- Can be used in automations for notifications
+- Показує активний стан (Увімкнено/Вимкнено)
+- Динамічна іконка на основі стану тривоги
+- Може використовуватися в автоматизаціях для сповіщень
 
-### Light
+### Світло
 
-- **Lamp**: Control integrated lamp
-  - Turn on/off
-  - Adjust brightness
-  - Change color (if supported)
+- **Лампа**: Керування вбудованою лампою
+  - Увімкнення/вимкнення
+  - Налаштування яскравості
+  - Зміна кольору (якщо підтримується)
 
 ### Select
 
-- **Map Mode**: Choose map visualization mode
-  - Options include: Disabled, Alert, Weather, Flag, Random Colors, Lamp
-  - Available options dynamically filtered based on device capabilities
-  - Real-time sync with device
-- **Display Mode**: Choose display visualization mode
-  - Options include: Off, Clock, Weather, Technical, Microclimate, Combined
-  - Available options dynamically filtered based on device capabilities
-  - Real-time sync with device
+- **Режим мапи**: Вибір режиму візуалізації мапи
+  - Опції включають: Вимкнено, Тривога, Погода, Прапор, Випадкові кольори, Лампа
+  - Доступні опції динамічно фільтруються на основі можливостей пристрою
+  - Синхронізація з пристроєм в реальному часі
+- **Режим дисплею**: Вибір режиму візуалізації дисплею
+  - Опції включають: Вимкнено, Годинник, Погода, Технічна інформація, Мікроклімат, Комбінований
+  - Доступні опції динамічно фільтруються на основі можливостей пристрою
+  - Синхронізація з пристроєм в реальному часі
 
-### Switches (Hardware-Dependent)
+### Перемикачі (залежить від апаратури)
 
-> **Note**: These switches appear only when supported by your device's hardware and firmware. The device reports which features are available via the `supported_sensors` field. Unsupported switches are completely removed from Home Assistant rather than showing as unavailable.
+> **Примітка**: Ці перемикачі з'являються тільки коли підтримуються апаратурою та прошивкою вашого пристрою. Пристрій повідомляє які функції доступні через поле `supported_sensors`. Непідтримувані перемикачі повністю видаляються з Home Assistant, а не просто позначаються недоступними.
 
-- **Night Mode**: Enable or disable night mode on the device
-  - Controls device night mode behavior
-  - Icon: 🌙 (weather-night)
-- **Display**: Enable or disable the display
-  - Turn device display on/off
-  - Icon: 🖥️ (monitor)
-- **Map**: Enable or disable the map feature
-  - Control map visualization on device
-  - Icon: 🗺️ (map)
+- **Нічний режим**: Увімкнення або вимкнення нічного режиму на пристрої
+  - Керує поведінкою пристрою в нічному режимі
+  - Іконка: 🌙 (weather-night)
+- **Дисплей**: Увімкнення або вимкнення дисплею
+  - Увімкнення/вимкнення дисплею пристрою
+  - Іконка: 🖥️ (monitor)
+- **Мапа**: Увімкнення або вимкнення функції мапи
+  - Керування візуалізацією мапи на пристрої
+  - Іконка: 🗺️ (map)
 
-**Dynamic Behavior:**
+**Динамічна поведінка:**
 
-- Switches automatically appear when hardware feature is supported by firmware
-- Unsupported switches are removed from Entity Registry (not just marked unavailable)
-- Switches reappear automatically if firmware enables support
-- All state changes update in real-time via WebSocket connection
+- Перемикачі автоматично з'являються коли функція апаратури підтримується прошивкою
+- Непідтримувані перемикачі видаляються з Entity Registry (не просто позначаються недоступними)
+- Перемикачі автоматично з'являються знову якщо прошивка включає підтримку
+- Всі зміни стану оновлюються в реальному часі через WebSocket з'єднання
 
-### Update
+### Event (залежить від апаратури)
 
-- **Firmware**: Manage device firmware updates
-  - View current firmware version
-  - Check for available updates
-  - Install updates directly from Home Assistant
-  - Real-time progress tracking during update
-  - View release notes from GitHub
-  - Entity category: Diagnostic
+> **Примітка**: Ця сутність з'являється тільки коли ваш пристрій підтримує події кнопок. Пристрій повідомляє підтримку кнопок через поле `supported_sensors` включаючи `button_events`.
 
-### Sensors
+- **Події кнопок**: Фіксує події натискання фізичних кнопок від пристрою
+  - Підтримка до 3 кнопок (ID кнопки: 1, 2, 3)
+  - Два типи подій: **click** та **long_click**
+  - Динамічна іконка, що показує останню натиснуту кнопку та тип події
+    - Click: Заповнений числовий квадрат (🔵 1️⃣, 2️⃣, 3️⃣)
+    - Long Click: Контурний числовий квадрат (⬜ ①, ②, ③)
+  - Ідеально для запуску автоматизацій на основі натискань кнопок
+  - Іконка оновлюється миттєво після кожного натискання кнопки
 
-#### Location & District Temperature
+**Дані події:**
 
-- **Home District**: Current home district/region name
-  - Updates when location changes
-- **Home District Temperature**: Temperature in your district (°C)
-  - Real-time temperature monitoring
+- `button_id`: Яка кнопка була натиснута (1, 2 або 3)
+- `event_type`: Як була натиснута кнопка ("click" або "long_click")
 
-#### Room Climate (Hardware-Dependent)
+**Випадки використання:**
 
-> **Note**: These sensors appear only when supported by your device's hardware and firmware. The device reports which sensors are available via the `supported_sensors` field. Unsupported sensors are completely removed from Home Assistant rather than showing as unavailable.
+- Запуск різних сцен з одинарним або довгим натисканням
+- Керування світлом, перемикачами або сценами з фізичних кнопок
+- Створення користувацьких ярликів кнопок для вашого розумного дому
 
-- **Room Temperature**: Room temperature (°C)
-- **Room Humidity**: Room humidity (%)
-- **Room Pressure**: Room pressure (mmHg)
-- **Light Level**: Room illuminance level (lux)
+Див. [Приклади автоматизацій](#приклади-автоматизацій) нижче для того, як використовувати події кнопок в автоматизаціях.
 
-**Dynamic Behavior:**
+### Оновлення
 
-- Sensors automatically appear when hardware is connected and firmware reports support
-- Unsupported sensors are removed from Entity Registry (not just marked unavailable)
-- Sensors reappear automatically if hardware is reconnected and firmware enables support
-- All values update in real-time via WebSocket connection
+- **Прошивка**: Керування оновленнями прошивки пристрою
+  - Перегляд поточної версії прошивки
+  - Перевірка доступних оновлень
+  - Встановлення оновлень безпосередньо з Home Assistant
+  - Відстеження прогресу в реальному часі під час оновлення
+  - Перегляд приміток до випуску з GitHub
+  - Категорія сутності: Діагностична
 
-#### System Diagnostics (All Diagnostic Category)
+### Сенсори
 
-- **Used Memory**: Current memory usage (MB)
-  - Monitor device memory consumption
-- **System Uptime**: How long the system has been running
-  - Reset after device reboot
-- **WiFi Uptime**: WiFi connection uptime
-  - Shows WiFi connection stability
-- **WiFi Signal**: WiFi signal strength (dBm or %)
-  - Monitor connection quality
-- **CPU Temperature**: Device CPU temperature (°C)
-  - Monitor device thermal status
-- **WebSocket Uptime**: WebSocket connection uptime
-  - How long current WebSocket session is active
+#### Місцезнаходження та температура регіону
 
-## Configuration Options
+- **Домашній регіон**: Назва поточного домашнього регіону/району
+  - Оновлюється при зміні місцезнаходження
+- **Температура в регіоні**: Температура у вашому регіоні (°C)
+  - Моніторинг температури в реальному часі
 
-### During Setup
+#### Клімат приміщення (залежить від апаратури)
 
-Name | Required | Default | Description
+> **Примітка**: Ці сенсори з'являються тільки коли підтримуються апаратурою та прошивкою вашого пристрою. Пристрій повідомляє які сенсори доступні через поле `supported_sensors`. Непідтримувані сенсори повністю видаляються з Home Assistant, а не просто позначаються недоступними.
+
+- **Температура приміщення**: Температура в кімнаті (°C)
+- **Вологість приміщення**: Вологість в кімнаті (%)
+- **Тиск приміщення**: Тиск в кімнаті (мм рт.ст.)
+- **Рівень освітлення**: Рівень освітленості приміщення (lux)
+
+**Динамічна поведінка:**
+
+- Сенсори автоматично з'являються коли апаратура підключена та прошивка повідомляє підтримку
+- Непідтримувані сенсори видаляються з Entity Registry (не просто позначаються недоступними)
+- Сенсори автоматично з'являються знову якщо апаратура підключена знову та прошивка включає підтримку
+- Всі значення оновлюються в реальному часі через WebSocket з'єднання
+
+#### Системна діагностика (всі в діагностичній категорії)
+
+- **Використано пам'яті**: Поточне використання пам'яті (МБ)
+  - Моніторинг споживання пам'яті пристроєм
+- **Час роботи системи**: Як довго система працює
+  - Скидається після перезавантаження пристрою
+- **Час роботи WiFi**: Час роботи WiFi з'єднання
+  - Показує стабільність WiFi з'єднання
+- **Сигнал WiFi**: Потужність сигналу WiFi (dBm або %)
+  - Моніторинг якості з'єднання
+- **Температура CPU**: Температура CPU пристрою (°C)
+  - Моніторинг теплового стану пристрою
+- **Час роботи WebSocket**: Час роботи WebSocket з'єднання
+  - Як довго активна поточна WebSocket сесія
+
+## Опції конфігурації
+
+### Під час налаштування
+
+Назва | Обов'язково | За замовчуванням | Опис
 -- | -- | -- | --
-Host | Yes | - | Device IP address or hostname
-Port | No | 81 | WebSocket port number
+Хост | Так | - | IP-адреса або ім'я хоста пристрою
+Порт | Ні | 81 | Номер WebSocket порту
 
-### Reconfiguration
+### Реконфігурація
 
-You can change connection settings anytime:
+Ви можете змінити налаштування з'єднання в будь-який час:
 
-1. Go to **Settings** → **Devices & Services**
-2. Find **JAAM**
-3. Click **3 dots menu** → **Reconfigure**
-4. Update host/port
-5. Submit
+1. Перейдіть до **Налаштування** → **Пристрої та служби**
+2. Знайдіть **JAAM**
+3. Натисніть **меню з 3 крапками** → **Реконфігурувати**
+4. Оновіть хост/порт
+5. Натисніть Submit
 
-## Troubleshooting
+## Приклади автоматизацій
 
-### Connection Issues
+### Події кнопок
 
-#### WebSocket Connection Status
+Інтеграція надає сутності подій кнопок, які можуть запускати автоматизації. Ось як їх використовувати:
 
-Monitor your connection status with the **WebSocket Status** binary sensor:
+#### Приклад 1: Перемикання світла при натисканні кнопки
 
-- **On** (Connected): Integration is receiving real-time updates
-- **Off** (Disconnected): Connection lost or device offline
-  - Check the binary sensor attributes for diagnostic information
-  - Verify device is powered on and connected to network
-  - Check host/port settings are correct
-  - Check network connectivity
+```yaml
+automation:
+  - alias: "Кнопка 1 натискання - Перемикання світла в спальні"
+    description: "Перемикання світла в спальні при натисканні кнопки 1"
+    trigger:
+      - trigger: event
+        event_type: click
+        entity_id: event.jaam_button_events
+        event_data:
+          button_id: 1
+    action:
+      - service: light.toggle
+        target:
+          entity_id: light.bedroom
+```
 
-#### Reconfigure Connection
+#### Приклад 2: Активація сцени при довгому натисканні
 
-If your device IP or port changes:
+```yaml
+automation:
+  - alias: "Кнопка 2 довге натискання - Сцена кіно"
+    description: "Активація сцени кіно при довгому натисканні кнопки 2"
+    trigger:
+      - trigger: event
+        event_type: long_click
+        entity_id: event.jaam_button_events
+        event_data:
+          button_id: 2
+    action:
+      - service: scene.turn_on
+        target:
+          entity_id: scene.movie_night
+```
 
-1. Go to **Settings** → **Devices & Services**
-2. Find **JAAM**
-3. Click the **3 dots menu** → **Reconfigure**
-4. Enter new host/port
-5. Click Submit
+#### Приклад 3: Кілька кнопок з різними діями
 
-The integration will automatically reconnect with the new settings.
+```yaml
+automation:
+  # Кнопка 1: Керування світлом у вітальні
+  - alias: "Кнопка 1 натискання - Світло у вітальні"
+    trigger:
+      - trigger: event
+        event_type: click
+        entity_id: event.jaam_button_events
+        event_data:
+          button_id: 1
+    action:
+      - service: light.toggle
+        target:
+          entity_id: light.living_room
 
-### Enable Debug Logging
+  # Кнопка 1 довге натискання: Вимкнути все світло
+  - alias: "Кнопка 1 довге натискання - Вимкнути все світло"
+    trigger:
+      - trigger: event
+        event_type: long_click
+        entity_id: event.jaam_button_events
+        event_data:
+          button_id: 1
+    action:
+      - service: light.turn_off
+        target:
+          entity_id: all
 
-To enable debug logging for this integration, add the following to your `configuration.yaml`:
+  # Кнопка 2: Налаштування клімату
+  - alias: "Кнопка 2 натискання - Збільшити температуру"
+    trigger:
+      - trigger: event
+        event_type: click
+        entity_id: event.jaam_button_events
+        event_data:
+          button_id: 2
+    action:
+      - service: climate.set_temperature
+        target:
+          entity_id: climate.thermostat
+        data:
+          temperature: "{{ state_attr('climate.thermostat', 'temperature') + 0.5 }}"
+```
+
+#### Приклад 4: Надсилання сповіщень на основі натискання кнопки
+
+```yaml
+automation:
+  - alias: "Кнопка 3 натискання - Надіслати сповіщення"
+    description: "Надіслати сповіщення при натисканні кнопки 3"
+    trigger:
+      - trigger: event
+        event_type: click
+        entity_id: event.jaam_button_events
+        event_data:
+          button_id: 3
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "Натиснуто кнопку тривоги"
+          message: "Аварійна кнопка 3 була натиснута о {{ now().strftime('%H:%M:%S') }}"
+```
+
+#### Приклад 5: Запуск скрипту з даними кнопки
+
+```yaml
+automation:
+  - alias: "Будь-яке натискання кнопки - Журнал подій"
+    description: "Журналювання будь-якої події натискання кнопки"
+    trigger:
+      - trigger: event
+        event_type: click
+        entity_id: event.jaam_button_events
+    action:
+      - service: script.log_button_press
+        data:
+          button_id: "{{ trigger.event.data.button_id }}"
+          event_type: "{{ trigger.event.event_type }}"
+```
+
+### Автоматизації на основі тривог
+
+#### Приклад: Надіслати сповіщення при повітряній тривозі
+
+```yaml
+automation:
+  - alias: "Сповіщення про повітряну тривогу"
+    description: "Надіслати сповіщення при активації повітряної тривоги"
+    trigger:
+      - trigger: state
+        entity_id: binary_sensor.jaam_air_alert
+        from: "off"
+        to: "on"
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "⚠️ Повітряна тривога"
+          message: "Повітряна тривога в {{ state_attr('sensor.jaam_home_district', 'friendly_name') }}"
+          data:
+            priority: high
+```
+
+## Усунення несправностей
+
+### Проблеми зі з'єднанням
+
+#### Статус WebSocket з'єднання
+
+Моніторте статус вашого з'єднання за допомогою бінарного сенсора **Статус WebSocket**:
+
+- **Увімкнено** (Підключено): Інтеграція отримує оновлення в реальному часі
+- **Вимкнено** (Від'єднано): З'єднання втрачено або пристрій офлайн
+  - Перевірте атрибути бінарного сенсора для діагностичної інформації
+  - Переконайтеся, що пристрій увімкнений та підключений до мережі
+  - Перевірте правильність налаштувань хост/порт
+  - Перевірте мережеве з'єднання
+
+#### Реконфігурація з'єднання
+
+Якщо IP або порт вашого пристрою змінився:
+
+1. Перейдіть до **Налаштування** → **Пристрої та служби**
+2. Знайдіть **JAAM**
+3. Натисніть **меню з 3 крапками** → **Реконфігурувати**
+4. Введіть новий хост/порт
+5. Натисніть Submit
+
+Інтеграція автоматично перепідключиться з новими налаштуваннями.
+
+### Увімкнення журналювання налагодження
+
+Щоб увімкнути журналювання налагодження для цієї інтеграції, додайте наступне до вашого `configuration.yaml`:
 
 ```yaml
 logger:
@@ -315,90 +494,90 @@ logger:
     custom_components.jaam_ha: debug
 ```
 
-### Common Issues
+### Поширені проблеми
 
-#### Device Not Responding
+#### Пристрій не відповідає
 
-If your device is not responding:
+Якщо ваш пристрій не відповідає:
 
-1. Check the **WebSocket Status** binary sensor - it should be "On"
-2. Verify device IP address is correct (try pinging the device)
-3. Verify port 81 is accessible (or your configured port)
-4. Check your network connection - device and Home Assistant on same network?
-5. Verify the device is powered on
-6. Check the integration diagnostics (Settings → Devices & Services → **JAAM** → 3 dots → Download diagnostics)
+1. Перевірте бінарний сенсор **Статус WebSocket** - він повинен бути "Увімкнено"
+2. Переконайтеся, що IP-адреса пристрою правильна (спробуйте пінгувати пристрій)
+3. Переконайтеся, що порт 81 доступний (або ваш налаштований порт)
+4. Перевірте ваше мережеве з'єднання - пристрій та Home Assistant в одній мережі?
+5. Переконайтеся, що пристрій увімкнений
+6. Перевірте діагностику інтеграції (Налаштування → Пристрої та служби → **JAAM** → 3 крапки → Завантажити діагностику)
 
-#### Alert Sensors Not Updating
+#### Сенсори тривог не оновлюються
 
-If alert sensors are not showing correct states:
+Якщо сенсори тривог не показують правильні стани:
 
-1. Check **WebSocket Status** is "On" (connection required for real-time updates)
-2. Verify device is receiving alert data from server
-3. Check system diagnostic sensors are updating (proves WebSocket is working)
-4. Enable debug logging (see below) and check for error messages
+1. Перевірте що **Статус WebSocket** "Увімкнено" (з'єднання потрібне для оновлень в реальному часі)
+2. Переконайтеся, що пристрій отримує дані про тривоги від сервера
+3. Перевірте чи оновлюються системні діагностичні сенсори (доводить що WebSocket працює)
+4. Увімкніть журналювання налагодження (див. вище) та перевірте повідомлення про помилки
 
-## 🤝 Contributing
+## 🤝 Внесок
 
-Contributions are welcome! Please open an issue or pull request if you have suggestions or improvements.
+Внески вітаються! Будь ласка, відкрийте issue або pull request, якщо у вас є пропозиції або покращення.
 
-### 🛠️ Development Setup
+### 🛠️ Налаштування для розробки
 
-Want to contribute or customize this integration? You have two options:
+Хочете зробити внесок або налаштувати цю інтеграцію? У вас є два варіанти:
 
-#### Cloud Development (Recommended)
+#### Хмарна розробка (рекомендовано)
 
-The easiest way to get started - develop directly in your browser with GitHub Codespaces:
+Найпростіший спосіб розпочати - розробляйте прямо у вашому браузері з GitHub Codespaces:
 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/J-A-A-M/jaam_ha?quickstart=1)
 
-- ✅ Zero local setup required
-- ✅ Pre-configured development environment
-- ✅ Home Assistant included for testing
-- ✅ 60 hours/month free for personal accounts
+- ✅ Не потрібне локальне налаштування
+- ✅ Попередньо налаштоване середовище розробки
+- ✅ Home Assistant включений для тестування
+- ✅ 60 годин/місяць безкоштовно для особистих акаунтів
 
-#### Local Development
+#### Локальна розробка
 
-Prefer working on your machine? You'll need:
+Віддаєте перевагу роботі на вашій машині? Вам знадобиться:
 
 - Docker Desktop
-- VS Code with the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+- VS Code з [розширенням Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
 
-Then:
+Потім:
 
-1. Clone this repository
-2. Open in VS Code
-3. Click "Reopen in Container" when prompted
+1. Клонуйте цей репозиторій
+2. Відкрийте у VS Code
+3. Натисніть "Reopen in Container" коли буде запропоновано
 
-Both options give you the same fully-configured development environment with Home Assistant, Python 3.13, and all necessary tools.
-
----
-
-## 🤖 AI-Assisted Development
-
-> **ℹ️ Transparency Notice**
->
-> This integration was developed with assistance from AI coding agents (GitHub Copilot, Claude, and others). While the codebase follows Home Assistant Core standards, AI-generated code may not be reviewed or tested to the same extent as manually written code.
->
-> AI tools were used to:
->
-> - Generate boilerplate code following Home Assistant patterns
-> - Implement standard integration features (config flow, coordinator, entities)
-> - Ensure code quality and type safety
-> - Write documentation and comments
->
-> Please be aware that AI-assisted development may result in unexpected behavior or edge cases that haven't been thoroughly tested. If you encounter any issues, please [open an issue](../../issues) on GitHub.
->
-> *Note: This section can be removed or modified if AI assistance was not used in your integration's development.*
+Обидва варіанти дають вам те саме повністю налаштоване середовище розробки з Home Assistant, Python 3.13 та всіма необхідними інструментами.
 
 ---
 
-## 📄 License
+## 🤖 Розробка з підтримкою AI
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+> **ℹ️ Повідомлення про прозорість**
+>
+> Ця інтеграція була розроблена за допомогою AI агентів для програмування (GitHub Copilot, Claude та інші). Хоча кодова база дотримується стандартів Home Assistant Core, код згенерований AI може бути не перевірений або протестований у такій же мірі, як код написаний вручну.
+>
+> AI інструменти використовувалися для:
+>
+> - Генерації шаблонного коду відповідно до патернів Home Assistant
+> - Реалізації стандартних функцій інтеграції (config flow, coordinator, entities)
+> - Забезпечення якості коду та типобезпеки
+> - Написання документації та коментарів
+>
+> Будь ласка, майте на увазі, що розробка з підтримкою AI може призвести до неочікуваної поведінки або граничних випадків, які не були ретельно протестовані. Якщо ви зіткнетеся з будь-якими проблемами, будь ласка, [відкрийте issue](../../issues) на GitHub.
+>
+> *Примітка: Цей розділ може бути видалений або змінений, якщо AI підтримка не використовувалася при розробці вашої інтеграції.*
 
 ---
 
-**Made with ❤️ by [@J-A-A-M][user_profile]**
+## 📄 Ліцензія
+
+Цей проект ліцензовано під ліцензією MIT - див. файл [LICENSE](LICENSE) для деталей.
+
+---
+
+**Зроблено з ❤️ [@J-A-A-M][user_profile]**
 
 ---
 

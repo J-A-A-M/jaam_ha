@@ -91,6 +91,23 @@
         "name": "Статус WebSocket"
       }
     },
+    "event": {
+      "button_events": {
+        "name": "Події кнопок",
+        "state_attributes": {
+          "button_id": {
+            "name": "ID кнопки"
+          },
+          "event_type": {
+            "name": "Тип події",
+            "state": {
+              "click": "Натискання",
+              "long_click": "Довге натискання"
+            }
+          }
+        }
+      }
+    },
     "light": {
       "lamp": {
         "name": "Лампа"

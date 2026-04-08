@@ -1,0 +1,591 @@
+# JAAM
+
+> **[English version](README.en.md)** | [Українська версія](README.md)
+
+[![GitHub Release][releases-shield]][releases]
+[![GitHub Activity][commits-shield]][commits]
+[![License][license-shield]](LICENSE)
+
+[![hacs][hacsbadge]][hacs]
+
+<!--
+Uncomment and customize these badges if you want to use them:
+
+[![BuyMeCoffee][buymecoffeebadge]][buymecoffee]
+[![Discord][discord-shield]][discord]
+-->
+
+**✨ Develop in the cloud:** Want to contribute or customize this integration? Open it directly in GitHub Codespaces - no local setup required!
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/J-A-A-M/jaam_ha?quickstart=1)
+
+## ✨ Features
+
+- **Easy Setup**: Simple configuration through the UI - no YAML required
+- **Automatic Discovery**: Zeroconf support for automatic device detection
+- **Real-time Monitoring**: WebSocket connection for instant updates
+- **Button Events**: Physical button press events for automation (hardware-dependent)
+  - Supports up to 3 buttons with click and long-click detection
+  - Dynamic icons showing last button pressed
+  - Perfect for triggering scenes, lights, and custom automations
+- **Firmware Updates**: Install firmware updates with progress tracking and release notes
+- **Alert System**: 11 separate binary sensors for different threat types
+- **Location Info**: Track home district name and temperature
+- **Room Climate**: Monitor room temperature, humidity, and pressure (mmHg)
+- **Light Level Monitoring**: Track room illuminance in lux (if sensor available)
+- **Hardware-Aware Entities**: Entities automatically adapt to device capabilities
+  - Sensors appear only when hardware is present and supported by firmware
+  - Unsupported sensors are completely removed (not just unavailable)
+  - Select options dynamically filtered based on device capabilities
+- **System Diagnostics**: Monitor device health (memory, uptime, WiFi signal, CPU temperature)
+- **Smart Light Control**: Control integrated lamp with brightness and color
+- **Flexible Display Modes**: Map and display mode options adapt to your device's capabilities
+- **Reconfigurable**: Change host/port anytime without removing the integration
+
+**This integration will set up the following platforms.**
+
+Platform | Description
+-- | --
+`binary_sensor` | WebSocket connection status and 11 alert type sensors
+`event` | Button press events (click/long_click) from physical buttons - hardware-dependent
+`light` | Lamp control with brightness and color
+`select` | Map mode and display mode selection (options dynamically filtered by device capabilities)
+`sensor` | Home district, district temperature, room climate (hardware-dependent), and system diagnostics
+`switch` | Device feature toggles (night mode, display, map) - hardware-dependent
+`update` | Firmware update management with progress tracking and release notes
+
+## 🚀 Quick Start
+
+### Step 1: Install the Integration
+
+**Prerequisites:** This integration requires [HACS](https://hacs.xyz/) (Home Assistant Community Store) to be installed.
+
+Click the button below to open the integration directly in HACS:
+
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=J-A-A-M&repository=jaam_ha&category=integration)
+
+Then:
+
+1. Click "Download" to install the integration
+2. **Restart Home Assistant** (required after installation)
+
+> **Note:** The My Home Assistant redirect will first take you to a landing page. Click the button there to open your Home Assistant instance.
+
+<details>
+<summary>**Manual Installation (Advanced)**</summary>
+
+If you prefer not to use HACS:
+
+1. Download the `custom_components/jaam_ha/` folder from this repository
+2. Copy it to your Home Assistant's `custom_components/` directory
+3. Restart Home Assistant
+
+</details>
+
+### Step 2: Add and Configure the Integration
+
+**Important:** You must have installed the integration first (see Step 1) and restarted Home Assistant!
+
+#### Automatic Discovery (Recommended)
+
+If your JAAM device supports zeroconf, it will be **automatically discovered** by Home Assistant:
+
+1. Go to **Settings** → **Devices & Services**
+2. Look for a **"Discovered"** notification for JAAM
+3. Click **"Configure"** on the notification
+4. Verify the host/port and click Submit
+
+> **Note:** Automatic discovery requires your device to broadcast the `_jaam-ws._tcp.local.` service on your network.
+
+#### Option 1: One-Click Setup (Manual)
+
+If automatic discovery doesn't work, use one-click setup:
+
+Click the button below to open the configuration dialog:
+
+[![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=jaam_ha)
+
+Follow the setup wizard:
+
+1. Enter your device **Host** (IP address or hostname)
+2. Enter the **Port** (default: 81)
+3. Click Submit
+
+That's it! The integration will connect to your JAAM device via WebSocket.
+
+#### Option 2: Manual Configuration
+
+1. Go to **Settings** → **Devices & Services**
+2. Click **"+ Add Integration"**
+3. Search for "JAAM"
+4. Follow the same setup steps as Option 1
+
+### Step 3: Reconfigure Connection (Optional)
+
+You can change the device connection settings anytime:
+
+1. Go to **Settings** → **Devices & Services**
+2. Find **JAAM**
+3. Click the **3 dots menu** → **Reconfigure**
+4. Update host/port as needed
+
+### Step 4: Start Using!
+
+The integration creates several entities for your JAAM device:
+
+- **Binary Sensors**: WebSocket connection status + 11 alert type sensors
+- **Light**: Lamp control with brightness and color
+- **Select**: Map mode and display mode selection (options adapt to device capabilities)
+- **Sensors**: Home district, temperature, room climate (hardware-dependent), and 6 system diagnostic sensors
+- **Switches**: Device feature toggles (night mode, display, map) - hardware-dependent
+- **Update**: Firmware update management with progress tracking
+
+> **Note**: Available sensors, switches, and select options automatically adapt to your device's hardware capabilities. Only supported entities appear in Home Assistant.
+
+Find all entities in **Settings** → **Devices & Services** → **JAAM** → click on the device.
+
+## Available Entities
+
+### Binary Sensors
+
+#### WebSocket Status (Diagnostic)
+
+- Shows real-time WebSocket connection status
+- **On**: Connected and receiving updates
+- **Off**: Connection lost or device offline
+
+#### Alert Sensors
+
+11 separate binary sensors for different threat types (updated in real-time):
+
+- **Air Alert**: General air raid alert
+- **Artillery**: Artillery threat alert
+- **Urban Combat**: Urban combat operations alert
+- **Chemical**: Chemical hazard alert
+- **Nuclear**: Nuclear threat alert
+- **Drones**: Drone attack alert
+- **Missiles**: Missile threat alert
+- **KAB (Air Bombs)**: Guided air bomb alert
+- **Ballistic Missiles**: Ballistic missile alert
+- **Explosion Hazard**: Explosion danger alert
+- **Reconnaissance**: Reconnaissance drone alert
+
+Each alert sensor:
+
+- Shows active state (On/Off)
+- Dynamic icon based on alert state
+- Can be used in automations for notifications
+
+### Light
+
+- **Lamp**: Control integrated lamp
+  - Turn on/off
+  - Adjust brightness
+  - Change color (if supported)
+
+### Select
+
+- **Map Mode**: Choose map visualization mode
+  - Options include: Disabled, Alert, Weather, Flag, Random Colors, Lamp
+  - Available options dynamically filtered based on device capabilities
+  - Real-time sync with device
+- **Display Mode**: Choose display visualization mode
+  - Options include: Off, Clock, Weather, Technical, Microclimate, Combined
+  - Available options dynamically filtered based on device capabilities
+  - Real-time sync with device
+
+### Switches (Hardware-Dependent)
+
+> **Note**: These switches appear only when supported by your device's hardware and firmware. The device reports which features are available via the `supported_sensors` field. Unsupported switches are completely removed from Home Assistant rather than showing as unavailable.
+
+- **Night Mode**: Enable or disable night mode on the device
+  - Controls device night mode behavior
+  - Icon: 🌙 (weather-night)
+- **Display**: Enable or disable the display
+  - Turn device display on/off
+  - Icon: 🖥️ (monitor)
+- **Map**: Enable or disable the map feature
+  - Control map visualization on device
+  - Icon: 🗺️ (map)
+
+**Dynamic Behavior:**
+
+- Switches automatically appear when hardware feature is supported by firmware
+- Unsupported switches are removed from Entity Registry (not just marked unavailable)
+- Switches reappear automatically if firmware enables support
+- All state changes update in real-time via WebSocket connection
+
+### Event (Hardware-Dependent)
+
+> **Note**: This entity appears only when your device supports button events. The device reports button support via the `supported_sensors` field including `button_events`.
+
+- **Button Events**: Captures physical button press events from the device
+  - Supports up to 3 buttons (button ID: 1, 2, 3)
+  - Two event types: **click** and **long_click**
+  - Dynamic icon showing last pressed button and event type
+    - Click: Filled number box (🔵 1️⃣, 2️⃣, 3️⃣)
+    - Long Click: Outlined number box (⬜ ①, ②, ③)
+  - Perfect for triggering automations based on button presses
+  - Icon updates instantly after each button press
+
+**Event Data:**
+
+- `button_id`: Which button was pressed (1, 2, or 3)
+- `event_type`: How the button was pressed ("click" or "long_click")
+
+**Use Cases:**
+
+- Trigger different scenes with single vs. long press
+- Control lights, switches, or scenes with physical buttons
+- Create custom button shortcuts for your smart home
+
+See [Automation Examples](#automation-examples) below for how to use button events in automations.
+
+### Update
+
+- **Firmware**: Manage device firmware updates
+  - View current firmware version
+  - Check for available updates
+  - Install updates directly from Home Assistant
+  - Real-time progress tracking during update
+  - View release notes from GitHub
+  - Entity category: Diagnostic
+
+### Sensors
+
+#### Location & District Temperature
+
+- **Home District**: Current home district/region name
+  - Updates when location changes
+- **Home District Temperature**: Temperature in your district (°C)
+  - Real-time temperature monitoring
+
+#### Room Climate (Hardware-Dependent)
+
+> **Note**: These sensors appear only when supported by your device's hardware and firmware. The device reports which sensors are available via the `supported_sensors` field. Unsupported sensors are completely removed from Home Assistant rather than showing as unavailable.
+
+- **Room Temperature**: Room temperature (°C)
+- **Room Humidity**: Room humidity (%)
+- **Room Pressure**: Room pressure (mmHg)
+- **Light Level**: Room illuminance level (lux)
+
+**Dynamic Behavior:**
+
+- Sensors automatically appear when hardware is connected and firmware reports support
+- Unsupported sensors are removed from Entity Registry (not just marked unavailable)
+- Sensors reappear automatically if hardware is reconnected and firmware enables support
+- All values update in real-time via WebSocket connection
+
+#### System Diagnostics (All Diagnostic Category)
+
+- **Used Memory**: Current memory usage (MB)
+  - Monitor device memory consumption
+- **System Uptime**: How long the system has been running
+  - Reset after device reboot
+- **WiFi Uptime**: WiFi connection uptime
+  - Shows WiFi connection stability
+- **WiFi Signal**: WiFi signal strength (dBm or %)
+  - Monitor connection quality
+- **CPU Temperature**: Device CPU temperature (°C)
+  - Monitor device thermal status
+- **WebSocket Uptime**: WebSocket connection uptime
+  - How long current WebSocket session is active
+
+## Configuration Options
+
+### During Setup
+
+Name | Required | Default | Description
+-- | -- | -- | --
+Host | Yes | - | Device IP address or hostname
+Port | No | 81 | WebSocket port number
+
+### Reconfiguration
+
+You can change connection settings anytime:
+
+1. Go to **Settings** → **Devices & Services**
+2. Find **JAAM**
+3. Click **3 dots menu** → **Reconfigure**
+4. Update host/port
+5. Submit
+
+## Automation Examples
+
+### Button Events
+
+The integration provides button event entities that can trigger automations. Here's how to use them:
+
+#### Example 1: Toggle Light on Button Click
+
+```yaml
+automation:
+  - alias: "Button 1 Click - Toggle Bedroom Light"
+    description: "Toggle bedroom light when button 1 is clicked"
+    trigger:
+      - trigger: event
+        event_type: click
+        entity_id: event.jaam_button_events
+        event_data:
+          button_id: 1
+    action:
+      - service: light.toggle
+        target:
+          entity_id: light.bedroom
+```
+
+#### Example 2: Activate Scene on Long Press
+
+```yaml
+automation:
+  - alias: "Button 2 Long Press - Movie Scene"
+    description: "Activate movie scene when button 2 is long-pressed"
+    trigger:
+      - trigger: event
+        event_type: long_click
+        entity_id: event.jaam_button_events
+        event_data:
+          button_id: 2
+    action:
+      - service: scene.turn_on
+        target:
+          entity_id: scene.movie_night
+```
+
+#### Example 3: Multiple Buttons with Different Actions
+
+```yaml
+automation:
+  # Button 1: Control living room lights
+  - alias: "Button 1 Click - Living Room Lights"
+    trigger:
+      - trigger: event
+        event_type: click
+        entity_id: event.jaam_button_events
+        event_data:
+          button_id: 1
+    action:
+      - service: light.toggle
+        target:
+          entity_id: light.living_room
+
+  # Button 1 Long Press: All lights off
+  - alias: "Button 1 Long Press - All Lights Off"
+    trigger:
+      - trigger: event
+        event_type: long_click
+        entity_id: event.jaam_button_events
+        event_data:
+          button_id: 1
+    action:
+      - service: light.turn_off
+        target:
+          entity_id: all
+
+  # Button 2: Adjust climate
+  - alias: "Button 2 Click - Increase Temperature"
+    trigger:
+      - trigger: event
+        event_type: click
+        entity_id: event.jaam_button_events
+        event_data:
+          button_id: 2
+    action:
+      - service: climate.set_temperature
+        target:
+          entity_id: climate.thermostat
+        data:
+          temperature: "{{ state_attr('climate.thermostat', 'temperature') + 0.5 }}"
+```
+
+#### Example 4: Send Notifications Based on Button Press
+
+```yaml
+automation:
+  - alias: "Button 3 Click - Send Alert"
+    description: "Send notification when button 3 is pressed"
+    trigger:
+      - trigger: event
+        event_type: click
+        entity_id: event.jaam_button_events
+        event_data:
+          button_id: 3
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "Alert Button Pressed"
+          message: "Emergency button 3 was clicked at {{ now().strftime('%H:%M:%S') }}"
+```
+
+#### Example 5: Trigger Script with Button Data
+
+```yaml
+automation:
+  - alias: "Any Button Click - Log Event"
+    description: "Log any button click event"
+    trigger:
+      - trigger: event
+        event_type: click
+        entity_id: event.jaam_button_events
+    action:
+      - service: script.log_button_press
+        data:
+          button_id: "{{ trigger.event.data.button_id }}"
+          event_type: "{{ trigger.event.event_type }}"
+```
+
+### Alert-Based Automations
+
+#### Example: Send Notification on Air Alert
+
+```yaml
+automation:
+  - alias: "Air Alert Notification"
+    description: "Send notification when air alert becomes active"
+    trigger:
+      - trigger: state
+        entity_id: binary_sensor.jaam_air_alert
+        from: "off"
+        to: "on"
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "⚠️ Air Alert"
+          message: "Air alert in {{ state_attr('sensor.jaam_home_district', 'friendly_name') }}"
+          data:
+            priority: high
+```
+
+## Troubleshooting
+
+### Connection Issues
+
+#### WebSocket Connection Status
+
+Monitor your connection status with the **WebSocket Status** binary sensor:
+
+- **On** (Connected): Integration is receiving real-time updates
+- **Off** (Disconnected): Connection lost or device offline
+  - Check the binary sensor attributes for diagnostic information
+  - Verify device is powered on and connected to network
+  - Check host/port settings are correct
+  - Check network connectivity
+
+#### Reconfigure Connection
+
+If your device IP or port changes:
+
+1. Go to **Settings** → **Devices & Services**
+2. Find **JAAM**
+3. Click the **3 dots menu** → **Reconfigure**
+4. Enter new host/port
+5. Click Submit
+
+The integration will automatically reconnect with the new settings.
+
+### Enable Debug Logging
+
+To enable debug logging for this integration, add the following to your `configuration.yaml`:
+
+```yaml
+logger:
+  default: info
+  logs:
+    custom_components.jaam_ha: debug
+```
+
+### Common Issues
+
+#### Device Not Responding
+
+If your device is not responding:
+
+1. Check the **WebSocket Status** binary sensor - it should be "On"
+2. Verify device IP address is correct (try pinging the device)
+3. Verify port 81 is accessible (or your configured port)
+4. Check your network connection - device and Home Assistant on same network?
+5. Verify the device is powered on
+6. Check the integration diagnostics (Settings → Devices & Services → **JAAM** → 3 dots → Download diagnostics)
+
+#### Alert Sensors Not Updating
+
+If alert sensors are not showing correct states:
+
+1. Check **WebSocket Status** is "On" (connection required for real-time updates)
+2. Verify device is receiving alert data from server
+3. Check system diagnostic sensors are updating (proves WebSocket is working)
+4. Enable debug logging (see below) and check for error messages
+
+## 🤝 Contributing
+
+Contributions are welcome! Please open an issue or pull request if you have suggestions or improvements.
+
+### 🛠️ Development Setup
+
+Want to contribute or customize this integration? You have two options:
+
+#### Cloud Development (Recommended)
+
+The easiest way to get started - develop directly in your browser with GitHub Codespaces:
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/J-A-A-M/jaam_ha?quickstart=1)
+
+- ✅ Zero local setup required
+- ✅ Pre-configured development environment
+- ✅ Home Assistant included for testing
+- ✅ 60 hours/month free for personal accounts
+
+#### Local Development
+
+Prefer working on your machine? You'll need:
+
+- Docker Desktop
+- VS Code with the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+
+Then:
+
+1. Clone this repository
+2. Open in VS Code
+3. Click "Reopen in Container" when prompted
+
+Both options give you the same fully-configured development environment with Home Assistant, Python 3.13, and all necessary tools.
+
+---
+
+## 🤖 AI-Assisted Development
+
+> **ℹ️ Transparency Notice**
+>
+> This integration was developed with assistance from AI coding agents (GitHub Copilot, Claude, and others). While the codebase follows Home Assistant Core standards, AI-generated code may not be reviewed or tested to the same extent as manually written code.
+>
+> AI tools were used to:
+>
+> - Generate boilerplate code following Home Assistant patterns
+> - Implement standard integration features (config flow, coordinator, entities)
+> - Ensure code quality and type safety
+> - Write documentation and comments
+>
+> Please be aware that AI-assisted development may result in unexpected behavior or edge cases that haven't been thoroughly tested. If you encounter any issues, please [open an issue](../../issues) on GitHub.
+>
+> *Note: This section can be removed or modified if AI assistance was not used in your integration's development.*
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+**Made with ❤️ by [@J-A-A-M][user_profile]**
+
+---
+
+[commits-shield]: https://img.shields.io/github/commit-activity/y/J-A-A-M/jaam_ha.svg?style=for-the-badge
+[commits]: https://github.com/J-A-A-M/jaam_ha/commits/main
+[hacs]: https://github.com/hacs/integration
+[hacsbadge]: https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge
+[license-shield]: https://img.shields.io/github/license/J-A-A-M/jaam_ha.svg?style=for-the-badge
+[releases-shield]: https://img.shields.io/github/release/J-A-A-M/jaam_ha.svg?style=for-the-badge
+[releases]: https://github.com/J-A-A-M/jaam_ha/releases
+[user_profile]: https://github.com/J-A-A-M
