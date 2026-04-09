@@ -318,120 +318,179 @@ Uncomment and customize these badges if you want to use them:
 
 #### Приклад 1: Перемикання світла при натисканні кнопки
 
+> **Примітка**: У прикладах нижче `event.jaam_button_events` - це placeholder. Фактичний entity_id включає MAC-адресу пристрою (наприклад, `event.jaam_c8612c34e3ec_button_events`).
+
 ```yaml
-automation:
-  - alias: "Кнопка 1 натискання - Перемикання світла в спальні"
-    description: "Перемикання світла в спальні при натисканні кнопки 1"
-    trigger:
-      - trigger: event
-        event_type: click
-        entity_id: event.jaam_button_events
-        event_data:
-          button_id: 1
-    action:
-      - service: light.toggle
-        target:
-          entity_id: light.bedroom
+alias: "Кнопка 1 натискання - Перемикання світла в спальні"
+description: "Перемикання світла в спальні при натисканні кнопки 1"
+triggers:
+  - trigger: state
+    entity_id:
+      - event.jaam_button_events
+conditions:
+  - condition: state
+    entity_id: event.jaam_button_events
+    state: 1
+    attribute: button_id
+  - condition: state
+    entity_id: event.jaam_button_events
+    state:
+      - click
+    attribute: event_type
+actions:
+  - action: light.toggle
+    target:
+      entity_id: light.bedroom
+mode: single
 ```
 
 #### Приклад 2: Активація сцени при довгому натисканні
 
 ```yaml
-automation:
-  - alias: "Кнопка 2 довге натискання - Сцена кіно"
-    description: "Активація сцени кіно при довгому натисканні кнопки 2"
-    trigger:
-      - trigger: event
-        event_type: long_click
-        entity_id: event.jaam_button_events
-        event_data:
-          button_id: 2
-    action:
-      - service: scene.turn_on
-        target:
-          entity_id: scene.movie_night
+alias: "Кнопка 2 довге натискання - Сцена кіно"
+description: "Активація сцени кіно при довгому натисканні кнопки 2"
+triggers:
+  - trigger: state
+    entity_id:
+      - event.jaam_button_events
+conditions:
+  - condition: state
+    entity_id: event.jaam_button_events
+    state: 2
+    attribute: button_id
+  - condition: state
+    entity_id: event.jaam_button_events
+    state:
+      - long_click
+    attribute: event_type
+actions:
+  - action: scene.turn_on
+    target:
+      entity_id: scene.movie_night
+mode: single
 ```
 
 #### Приклад 3: Кілька кнопок з різними діями
 
 ```yaml
-automation:
-  # Кнопка 1: Керування світлом у вітальні
-  - alias: "Кнопка 1 натискання - Світло у вітальні"
-    trigger:
-      - trigger: event
-        event_type: click
-        entity_id: event.jaam_button_events
-        event_data:
-          button_id: 1
-    action:
-      - service: light.toggle
-        target:
-          entity_id: light.living_room
+# Кнопка 1: Керування світлом у вітальні
+alias: "Кнопка 1 натискання - Світло у вітальні"
+description: "Перемикання світла у вітальні при натисканні кнопки 1"
+triggers:
+  - trigger: state
+    entity_id:
+      - event.jaam_button_events
+conditions:
+  - condition: state
+    entity_id: event.jaam_button_events
+    state: 1
+    attribute: button_id
+  - condition: state
+    entity_id: event.jaam_button_events
+    state:
+      - click
+    attribute: event_type
+actions:
+  - action: light.toggle
+    target:
+      entity_id: light.living_room
+mode: single
+```
 
-  # Кнопка 1 довге натискання: Вимкнути все світло
-  - alias: "Кнопка 1 довге натискання - Вимкнути все світло"
-    trigger:
-      - trigger: event
-        event_type: long_click
-        entity_id: event.jaam_button_events
-        event_data:
-          button_id: 1
-    action:
-      - service: light.turn_off
-        target:
-          entity_id: all
+```yaml
+# Кнопка 1 довге натискання: Вимкнути все світло
+alias: "Кнопка 1 довге натискання - Вимкнути все світло"
+description: "Вимкнення всього світла при довгому натисканні кнопки 1"
+triggers:
+  - trigger: state
+    entity_id:
+      - event.jaam_button_events
+conditions:
+  - condition: state
+    entity_id: event.jaam_button_events
+    state: 1
+    attribute: button_id
+  - condition: state
+    entity_id: event.jaam_button_events
+    state:
+      - long_click
+    attribute: event_type
+actions:
+  - action: light.turn_off
+    target:
+      entity_id: all
+mode: single
+```
 
-  # Кнопка 2: Налаштування клімату
-  - alias: "Кнопка 2 натискання - Збільшити температуру"
-    trigger:
-      - trigger: event
-        event_type: click
-        entity_id: event.jaam_button_events
-        event_data:
-          button_id: 2
-    action:
-      - service: climate.set_temperature
-        target:
-          entity_id: climate.thermostat
-        data:
-          temperature: "{{ state_attr('climate.thermostat', 'temperature') + 0.5 }}"
+```yaml
+# Кнопка 2: Налаштування клімату
+alias: "Кнопка 2 натискання - Збільшити температуру"
+description: "Збільшення температури термостата при натисканні кнопки 2"
+triggers:
+  - trigger: state
+    entity_id:
+      - event.jaam_button_events
+conditions:
+  - condition: state
+    entity_id: event.jaam_button_events
+    state: 2
+    attribute: button_id
+  - condition: state
+    entity_id: event.jaam_button_events
+    state:
+      - click
+    attribute: event_type
+actions:
+  - action: climate.set_temperature
+    target:
+      entity_id: climate.thermostat
+    data:
+      temperature: "{{ state_attr('climate.thermostat', 'temperature') + 0.5 }}"
+mode: single
 ```
 
 #### Приклад 4: Надсилання сповіщень на основі натискання кнопки
 
 ```yaml
-automation:
-  - alias: "Кнопка 3 натискання - Надіслати сповіщення"
-    description: "Надіслати сповіщення при натисканні кнопки 3"
-    trigger:
-      - trigger: event
-        event_type: click
-        entity_id: event.jaam_button_events
-        event_data:
-          button_id: 3
-    action:
-      - service: notify.mobile_app
-        data:
-          title: "Натиснуто кнопку тривоги"
-          message: "Аварійна кнопка 3 була натиснута о {{ now().strftime('%H:%M:%S') }}"
+alias: "Кнопка 3 натискання - Надіслати сповіщення"
+description: "Надіслати сповіщення при натисканні кнопки 3"
+triggers:
+  - trigger: state
+    entity_id:
+      - event.jaam_button_events
+conditions:
+  - condition: state
+    entity_id: event.jaam_button_events
+    state: 3
+    attribute: button_id
+  - condition: state
+    entity_id: event.jaam_button_events
+    state:
+      - click
+    attribute: event_type
+actions:
+  - action: notify.mobile_app
+    data:
+      title: "Натиснуто кнопку тривоги"
+      message: "Аварійна кнопка 3 була натиснута о {{ now().strftime('%H:%M:%S') }}"
+mode: single
 ```
 
 #### Приклад 5: Запуск скрипту з даними кнопки
 
 ```yaml
-automation:
-  - alias: "Будь-яке натискання кнопки - Журнал подій"
-    description: "Журналювання будь-якої події натискання кнопки"
-    trigger:
-      - trigger: event
-        event_type: click
-        entity_id: event.jaam_button_events
-    action:
-      - service: script.log_button_press
-        data:
-          button_id: "{{ trigger.event.data.button_id }}"
-          event_type: "{{ trigger.event.event_type }}"
+alias: "Будь-яке натискання кнопки - Журнал подій"
+description: "Журналювання будь-якої події натискання кнопки"
+triggers:
+  - trigger: state
+    entity_id:
+      - event.jaam_button_events
+actions:
+  - action: script.log_button_press
+    data:
+      button_id: "{{ state_attr('event.jaam_button_events', 'button_id') }}"
+      event_type: "{{ state_attr('event.jaam_button_events', 'event_type') }}"
+mode: single
 ```
 
 ### Автоматизації на основі тривог

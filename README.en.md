@@ -318,120 +318,179 @@ The integration provides button event entities that can trigger automations. Her
 
 #### Example 1: Toggle Light on Button Click
 
+> **Note**: In the examples below, `event.jaam_button_events` is a placeholder. The actual entity_id includes the device MAC address (e.g., `event.jaam_c8612c34e3ec_button_events`).
+
 ```yaml
-automation:
-  - alias: "Button 1 Click - Toggle Bedroom Light"
-    description: "Toggle bedroom light when button 1 is clicked"
-    trigger:
-      - trigger: event
-        event_type: click
-        entity_id: event.jaam_button_events
-        event_data:
-          button_id: 1
-    action:
-      - service: light.toggle
-        target:
-          entity_id: light.bedroom
+alias: "Button 1 Click - Toggle Bedroom Light"
+description: "Toggle bedroom light when button 1 is clicked"
+triggers:
+  - trigger: state
+    entity_id:
+      - event.jaam_button_events
+conditions:
+  - condition: state
+    entity_id: event.jaam_button_events
+    state: 1
+    attribute: button_id
+  - condition: state
+    entity_id: event.jaam_button_events
+    state:
+      - click
+    attribute: event_type
+actions:
+  - action: light.toggle
+    target:
+      entity_id: light.bedroom
+mode: single
 ```
 
 #### Example 2: Activate Scene on Long Press
 
 ```yaml
-automation:
-  - alias: "Button 2 Long Press - Movie Scene"
-    description: "Activate movie scene when button 2 is long-pressed"
-    trigger:
-      - trigger: event
-        event_type: long_click
-        entity_id: event.jaam_button_events
-        event_data:
-          button_id: 2
-    action:
-      - service: scene.turn_on
-        target:
-          entity_id: scene.movie_night
+alias: "Button 2 Long Press - Movie Scene"
+description: "Activate movie scene when button 2 is long-pressed"
+triggers:
+  - trigger: state
+    entity_id:
+      - event.jaam_button_events
+conditions:
+  - condition: state
+    entity_id: event.jaam_button_events
+    state: 2
+    attribute: button_id
+  - condition: state
+    entity_id: event.jaam_button_events
+    state:
+      - long_click
+    attribute: event_type
+actions:
+  - action: scene.turn_on
+    target:
+      entity_id: scene.movie_night
+mode: single
 ```
 
 #### Example 3: Multiple Buttons with Different Actions
 
 ```yaml
-automation:
-  # Button 1: Control living room lights
-  - alias: "Button 1 Click - Living Room Lights"
-    trigger:
-      - trigger: event
-        event_type: click
-        entity_id: event.jaam_button_events
-        event_data:
-          button_id: 1
-    action:
-      - service: light.toggle
-        target:
-          entity_id: light.living_room
+# Button 1: Control living room lights
+alias: "Button 1 Click - Living Room Lights"
+description: "Toggle living room lights when button 1 is clicked"
+triggers:
+  - trigger: state
+    entity_id:
+      - event.jaam_button_events
+conditions:
+  - condition: state
+    entity_id: event.jaam_button_events
+    state: 1
+    attribute: button_id
+  - condition: state
+    entity_id: event.jaam_button_events
+    state:
+      - click
+    attribute: event_type
+actions:
+  - action: light.toggle
+    target:
+      entity_id: light.living_room
+mode: single
+```
 
-  # Button 1 Long Press: All lights off
-  - alias: "Button 1 Long Press - All Lights Off"
-    trigger:
-      - trigger: event
-        event_type: long_click
-        entity_id: event.jaam_button_events
-        event_data:
-          button_id: 1
-    action:
-      - service: light.turn_off
-        target:
-          entity_id: all
+```yaml
+# Button 1 Long Press: All lights off
+alias: "Button 1 Long Press - All Lights Off"
+description: "Turn off all lights when button 1 is long-pressed"
+triggers:
+  - trigger: state
+    entity_id:
+      - event.jaam_button_events
+conditions:
+  - condition: state
+    entity_id: event.jaam_button_events
+    state: 1
+    attribute: button_id
+  - condition: state
+    entity_id: event.jaam_button_events
+    state:
+      - long_click
+    attribute: event_type
+actions:
+  - action: light.turn_off
+    target:
+      entity_id: all
+mode: single
+```
 
-  # Button 2: Adjust climate
-  - alias: "Button 2 Click - Increase Temperature"
-    trigger:
-      - trigger: event
-        event_type: click
-        entity_id: event.jaam_button_events
-        event_data:
-          button_id: 2
-    action:
-      - service: climate.set_temperature
-        target:
-          entity_id: climate.thermostat
-        data:
-          temperature: "{{ state_attr('climate.thermostat', 'temperature') + 0.5 }}"
+```yaml
+# Button 2: Adjust climate
+alias: "Button 2 Click - Increase Temperature"
+description: "Increase thermostat temperature when button 2 is clicked"
+triggers:
+  - trigger: state
+    entity_id:
+      - event.jaam_button_events
+conditions:
+  - condition: state
+    entity_id: event.jaam_button_events
+    state: 2
+    attribute: button_id
+  - condition: state
+    entity_id: event.jaam_button_events
+    state:
+      - click
+    attribute: event_type
+actions:
+  - action: climate.set_temperature
+    target:
+      entity_id: climate.thermostat
+    data:
+      temperature: "{{ state_attr('climate.thermostat', 'temperature') + 0.5 }}"
+mode: single
 ```
 
 #### Example 4: Send Notifications Based on Button Press
 
 ```yaml
-automation:
-  - alias: "Button 3 Click - Send Alert"
-    description: "Send notification when button 3 is pressed"
-    trigger:
-      - trigger: event
-        event_type: click
-        entity_id: event.jaam_button_events
-        event_data:
-          button_id: 3
-    action:
-      - service: notify.mobile_app
-        data:
-          title: "Alert Button Pressed"
-          message: "Emergency button 3 was clicked at {{ now().strftime('%H:%M:%S') }}"
+alias: "Button 3 Click - Send Alert"
+description: "Send notification when button 3 is pressed"
+triggers:
+  - trigger: state
+    entity_id:
+      - event.jaam_button_events
+conditions:
+  - condition: state
+    entity_id: event.jaam_button_events
+    state: 3
+    attribute: button_id
+  - condition: state
+    entity_id: event.jaam_button_events
+    state:
+      - click
+    attribute: event_type
+actions:
+  - action: notify.mobile_app
+    data:
+      title: "Alert Button Pressed"
+      message: "Emergency button 3 was clicked at {{ now().strftime('%H:%M:%S') }}"
+mode: single
 ```
 
 #### Example 5: Trigger Script with Button Data
 
 ```yaml
-automation:
-  - alias: "Any Button Click - Log Event"
-    description: "Log any button click event"
-    trigger:
-      - trigger: event
-        event_type: click
-        entity_id: event.jaam_button_events
-    action:
-      - service: script.log_button_press
-        data:
-          button_id: "{{ trigger.event.data.button_id }}"
-          event_type: "{{ trigger.event.event_type }}"
+alias: "Any Button Click - Log Event"
+description: "Log any button click event"
+triggers:
+  - trigger: state
+    entity_id:
+      - event.jaam_button_events
+actions:
+  - action: script.log_button_press
+    data:
+      button_id: "{{ state_attr('event.jaam_button_events', 'button_id') }}"
+      event_type: "{{ state_attr('event.jaam_button_events', 'event_type') }}"
+mode: single
 ```
 
 ### Alert-Based Automations
