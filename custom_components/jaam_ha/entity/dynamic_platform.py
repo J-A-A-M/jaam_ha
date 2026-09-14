@@ -8,7 +8,8 @@ user to remove and re-add the integration.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable, TypeVar
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from custom_components.jaam_ha.const import LOGGER
 from homeassistant.helpers import entity_registry as er
@@ -64,6 +65,7 @@ def async_setup_dynamic_entities(
     Registers a coordinator listener so entities keep appearing/disappearing automatically
     on every future update, matching hardware or firmware support as it changes.
     """
+
     def _default_should_remove(key: str, data: dict[str, Any]) -> bool:
         return not should_create(key, data)
 
