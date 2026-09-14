@@ -159,6 +159,13 @@ uv pip install --requirement "/tmp/requirements_all.txt"
 log_header "Installing Home Assistant ${HA_VERSION} test dependencies"
 curl -fsSL "${HA_CORE_BASE_URL}/requirements_test_pre_commit.txt" -o "/tmp/requirements_test_pre_commit.txt"  # required by requirements_test.txt
 curl -fsSL "${HA_CORE_BASE_URL}/requirements_test.txt" -o "/tmp/requirements_test.txt"
+# HA core pins a specific mypy-dev alpha build, but PyPI only keeps a rolling window of
+# mypy-dev nightlies, so that exact pin regularly disappears and breaks resolution.
+# We use pyright instead of mypy (see requirements_dev.txt), so drop the pin rather than
+# fail the install over a type checker we don't use.
+# (grep -v + mv instead of `sed -i` for portability between GNU and BSD/macOS sed)
+grep -v '^mypy-dev==' "/tmp/requirements_test.txt" > "/tmp/requirements_test.txt.filtered"
+mv "/tmp/requirements_test.txt.filtered" "/tmp/requirements_test.txt"
 uv pip install --requirement "/tmp/requirements_test.txt"
 
 log_header "Installing Home Assistant ${HA_VERSION} core"

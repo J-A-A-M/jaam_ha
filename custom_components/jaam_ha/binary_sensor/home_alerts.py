@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 # Alert types mapped to bit positions (bitmask)
 ALERT_TYPES: dict[int, str] = {
-    0: "air",  # Біт 0: повітряна тривога
+    0: "air",  # Біт 0: повітряна тривога (Deprecated, замінено бітами 11/12 з 5.1)
     1: "artillery",  # Біт 1: артилерія
     2: "urban",  # Біт 2: міські бої
     3: "chemical",  # Біт 3: хімічна загроза
@@ -27,11 +27,13 @@ ALERT_TYPES: dict[int, str] = {
     8: "ballistic",  # Біт 8: балістичні ракети
     9: "explosion",  # Біт 9: вибух
     10: "recon",  # Біт 10: розвідувальні дрони
+    11: "yellow",  # Біт 11: жовтий рівень тривоги (прошивка 5.1+)
+    12: "red",  # Біт 12: червоний рівень тривоги (прошивка 5.1+)
 }
 
 # Icon mapping for alert types
 ALERT_ICONS: dict[str, str] = {
-    "air": "mdi:alarm-light",
+    "air": "mdi:alarm-light-outline",
     "artillery": "mdi:cannon",
     "urban": "mdi:city",
     "chemical": "mdi:flask",
@@ -42,6 +44,20 @@ ALERT_ICONS: dict[str, str] = {
     "ballistic": "mdi:rocket-launch",
     "explosion": "mdi:explosion",
     "recon": "mdi:eye-circle-outline",
+    "yellow": "mdi:alert",
+    "red": "mdi:alarm-light",
+}
+
+# Alert types that require a minimum firmware version.
+# Bits 11/12 (yellow/red alert level) were introduced in firmware 5.1 — see
+# AlertModes::ALERT_LOW / AlertModes::ALERT in jaam_fusion's JaamConfig.h.
+# Pinned to 5.1-b8 (not plain "5.1"): that's the exact beta build the feature landed in -
+# firmware betas 5.1-b1..5.1-b7 predate it and must NOT be treated as supporting these bits.
+# Comparison must go through JaamHAFirmwareUpdate.version_is_newer(), which knows that a
+# release beats any beta of the same X.Y.Z; a naive tuple/string comparison does not.
+MIN_FW_VERSION_ALERT_LEVELS: dict[str, str] = {
+    "yellow": "5.1-b8",
+    "red": "5.1-b8",
 }
 
 # Safe icon (when alert is not active)
