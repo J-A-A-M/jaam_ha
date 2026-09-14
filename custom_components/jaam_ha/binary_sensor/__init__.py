@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from custom_components.jaam_ha.const import LOGGER, PARALLEL_UPDATES as PARALLEL_UPDATES
+from custom_components.jaam_ha.const import DOMAIN, PARALLEL_UPDATES as PARALLEL_UPDATES
+from custom_components.jaam_ha.entity import async_setup_dynamic_entities
 from custom_components.jaam_ha.update.firmware import JaamHAFirmwareUpdate
 from homeassistant.components.binary_sensor import BinarySensorEntityDescription
-from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import issue_registry as ir
 
 from .home_alerts import (
     ENTITY_DESCRIPTIONS as HOME_ALERTS_DESCRIPTIONS,
@@ -28,19 +29,19 @@ ENTITY_DESCRIPTIONS: tuple[BinarySensorEntityDescription, ...] = (
 )
 
 # Home alert descriptions gated behind a minimum firmware version (e.g. yellow/red alert level)
-VERSION_GATED_ALERT_DESCRIPTIONS = {
-    desc.key: desc
+DYNAMIC_ALERT_DESCRIPTIONS = {
+    desc.key: (desc, JaamHAHomeAlertSensor)
     for desc in HOME_ALERTS_DESCRIPTIONS
     if desc.key.removeprefix("home_alert_") in MIN_FW_VERSION_ALERT_LEVELS
 }
 
 # Home alert descriptions that are always created regardless of firmware version
 STATIC_ALERT_DESCRIPTIONS = tuple(
-    desc for desc in HOME_ALERTS_DESCRIPTIONS if desc.key not in VERSION_GATED_ALERT_DESCRIPTIONS
+    desc for desc in HOME_ALERTS_DESCRIPTIONS if desc.key not in DYNAMIC_ALERT_DESCRIPTIONS
 )
 
 
-def _is_alert_fw_supported(key: str, fw_version: str | None) -> bool:
+def _is_alert_fw_supported(key: str, data: dict[str, Any]) -> bool:
     """Check if a version-gated alert sensor is supported by the installed firmware."""
     alert_type = key.removeprefix("home_alert_")
     min_version = MIN_FW_VERSION_ALERT_LEVELS.get(alert_type)
@@ -49,6 +50,7 @@ def _is_alert_fw_supported(key: str, fw_version: str | None) -> bool:
     if min_version is None:
         return True
 
+    fw_version = data.get("fw_version")
     # Firmware version not yet known - wait for coordinator data before creating the entity
     if fw_version is None:
         return False
@@ -59,39 +61,32 @@ def _is_alert_fw_supported(key: str, fw_version: str | None) -> bool:
     return not JaamHAFirmwareUpdate.version_is_newer(min_version, fw_version)
 
 
-def _find_alert_entity_id(
-    entity_registry: er.EntityRegistry,
-    chip_id: str,
-    entry_id: str,
-    key: str,
-) -> str | None:
-    """Look up a home alert sensor's entity_id, trying both possible unique_id formats."""
-    unique_id_with_chip = f"jaam_{chip_id}_{key}"
-    unique_id_fallback = f"{entry_id}_{key}"
-
-    return entity_registry.async_get_entity_id(
-        "binary_sensor", "jaam_ha", unique_id_with_chip
-    ) or entity_registry.async_get_entity_id("binary_sensor", "jaam_ha", unique_id_fallback)
+def _deprecated_air_alert_issue_id(entry: JaamHAConfigEntry) -> str:
+    """Scope the repair issue per config entry so multiple JAAM devices don't interfere."""
+    return f"deprecated_air_alert_sensor_{entry.entry_id}"
 
 
-def _remove_unsupported_alerts(
-    hass: HomeAssistant,
-    entry: JaamHAConfigEntry,
-    data: dict[str, Any],
-) -> None:
-    """Remove version-gated alert sensors from the registry if the firmware no longer supports them."""
-    fw_version = data.get("fw_version")
-    entity_registry = er.async_get(hass)
-    chip_id = data.get("chip_id") or entry.entry_id
+def _sync_deprecated_air_alert_issue(hass: HomeAssistant, entry: JaamHAConfigEntry, data: dict[str, Any]) -> None:
+    """Create/clear the repair notice for the deprecated Air Alert sensor.
 
-    for key in VERSION_GATED_ALERT_DESCRIPTIONS:
-        if _is_alert_fw_supported(key, fw_version):
-            continue
+    Only relevant once the firmware actually exposes the replacement sensors (yellow/red
+    alert level) - telling users to migrate to sensors their firmware doesn't have yet
+    would be actively unhelpful, so the notice tracks the same support check as those
+    sensors and disappears again if a device is ever downgraded.
+    """
+    issue_id = _deprecated_air_alert_issue_id(entry)
 
-        entity_id = _find_alert_entity_id(entity_registry, chip_id, entry.entry_id, key)
-        if entity_id:
-            LOGGER.info("Removing alert sensor %s - not supported by firmware version %s", entity_id, fw_version)
-            entity_registry.async_remove(entity_id)
+    if _is_alert_fw_supported("home_alert_yellow", data):
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            issue_id,
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="deprecated_air_alert_sensor",
+        )
+    else:
+        ir.async_delete_issue(hass, DOMAIN, issue_id)
 
 
 async def async_setup_entry(
@@ -101,9 +96,6 @@ async def async_setup_entry(
 ) -> None:
     """Set up the binary_sensor platform."""
     coordinator = entry.runtime_data.coordinator
-
-    # Track which version-gated alert sensors have been created (by entity_description.key)
-    created_alert_keys: set[str] = set()
 
     # Create home alert sensors that are always available
     home_alert_entities = [
@@ -123,55 +115,26 @@ async def async_setup_entry(
         for entity_description in WEBSOCKET_STATUS_DESCRIPTIONS
     ]
 
-    # Add initial version-gated alert sensors if the current firmware supports them
-    data = coordinator.data or {}
-    fw_version = data.get("fw_version")
-    for key, entity_description in VERSION_GATED_ALERT_DESCRIPTIONS.items():
-        if _is_alert_fw_supported(key, fw_version):
-            home_alert_entities.append(
-                JaamHAHomeAlertSensor(coordinator=coordinator, entity_description=entity_description)
-            )
-            created_alert_keys.add(key)
-
-    # Add all entities
     async_add_entities([*home_alert_entities, *websocket_status_entities])
 
-    # Remove version-gated alert sensors that are not supported by the current firmware
-    _remove_unsupported_alerts(hass, entry, data)
+    async_setup_dynamic_entities(
+        hass,
+        entry,
+        coordinator,
+        async_add_entities,
+        domain="binary_sensor",
+        dynamic_descriptions=DYNAMIC_ALERT_DESCRIPTIONS,
+        should_create=_is_alert_fw_supported,
+    )
 
-    # Listener to dynamically add/remove version-gated alert sensors after firmware updates
-    def _check_and_add_alerts() -> None:
-        """Check coordinator data and add/remove version-gated alert sensors as firmware version changes."""
-        data = coordinator.data or {}
-        fw_version = data.get("fw_version")
-        new_entities = []
+    # Keep the deprecated-sensor repair notice in sync with firmware support, and clean
+    # it up if this config entry (device) is ever removed.
+    def _check_deprecated_air_alert_issue() -> None:
+        _sync_deprecated_air_alert_issue(hass, entry, coordinator.data or {})
 
-        for key, entity_description in VERSION_GATED_ALERT_DESCRIPTIONS.items():
-            if key in created_alert_keys:
-                continue
+    def _clear_deprecated_air_alert_issue() -> None:
+        ir.async_delete_issue(hass, DOMAIN, _deprecated_air_alert_issue_id(entry))
 
-            if _is_alert_fw_supported(key, fw_version):
-                new_entities.append(
-                    JaamHAHomeAlertSensor(coordinator=coordinator, entity_description=entity_description)
-                )
-                created_alert_keys.add(key)
-                LOGGER.info("Dynamically adding new alert sensor: %s (firmware %s)", key, fw_version)
-
-        if new_entities:
-            async_add_entities(new_entities)
-
-        entity_registry = er.async_get(hass)
-        chip_id = data.get("chip_id") or entry.entry_id
-
-        for key in list(created_alert_keys):  # Use list() to avoid RuntimeError during iteration
-            if _is_alert_fw_supported(key, fw_version):
-                continue
-
-            entity_id = _find_alert_entity_id(entity_registry, chip_id, entry.entry_id, key)
-            if entity_id:
-                LOGGER.info("Dynamically removing alert sensor %s - no longer supported", entity_id)
-                entity_registry.async_remove(entity_id)
-                created_alert_keys.discard(key)
-
-    # Register listener to be called on every coordinator update
-    entry.async_on_unload(coordinator.async_add_listener(_check_and_add_alerts))
+    _check_deprecated_air_alert_issue()
+    entry.async_on_unload(coordinator.async_add_listener(_check_deprecated_air_alert_issue))
+    entry.async_on_unload(_clear_deprecated_air_alert_issue)

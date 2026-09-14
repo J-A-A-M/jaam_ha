@@ -208,5 +208,11 @@
         }
       }
     }
+  },
+  "issues": {
+    "deprecated_air_alert_sensor": {
+      "title": "Air Alert sensor is deprecated",
+      "description": "Your JAAM device's firmware now reports alert severity separately, so the **Air Alert** binary sensor is deprecated in favor of **Yellow Alert Level** and **Red Alert Level**. Update your automations to use the new sensors; the old one is kept working for backward compatibility but won't receive further changes."
+    }
   }
 }
