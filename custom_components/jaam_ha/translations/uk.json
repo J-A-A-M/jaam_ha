@@ -55,7 +55,7 @@
   "entity": {
     "binary_sensor": {
       "home_alert_air": {
-        "name": "Повітряна тривога"
+        "name": "Повітряна тривога (Застаріло)"
       },
       "home_alert_artillery": {
         "name": "Артилерія"
@@ -86,6 +86,12 @@
       },
       "home_alert_recon": {
         "name": "Розвідувальні дрони"
+      },
+      "home_alert_yellow": {
+        "name": "Жовтий рівень тривоги"
+      },
+      "home_alert_red": {
+        "name": "Червоний рівень тривоги"
       },
       "websocket_status": {
         "name": "Статус WebSocket"

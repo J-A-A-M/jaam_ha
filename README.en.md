@@ -29,7 +29,7 @@ Uncomment and customize these badges if you want to use them:
   - Dynamic icons showing last button pressed
   - Perfect for triggering scenes, lights, and custom automations
 - **Firmware Updates**: Install firmware updates with progress tracking and release notes
-- **Alert System**: 11 separate binary sensors for different threat types
+- **Alert System**: 13 separate binary sensors for different threat types, including yellow and red alert levels (firmware 5.1+)
 - **Location Info**: Track home district name and temperature
 - **Room Climate**: Monitor room temperature, humidity, and pressure (mmHg)
 - **Light Level Monitoring**: Track room illuminance in lux (if sensor available)
@@ -46,7 +46,7 @@ Uncomment and customize these badges if you want to use them:
 
 Platform | Description
 -- | --
-`binary_sensor` | WebSocket connection status and 11 alert type sensors
+`binary_sensor` | WebSocket connection status and 13 alert type sensors
 `event` | Button press events (click/long_click) from physical buttons - hardware-dependent
 `light` | Lamp control with brightness and color
 `select` | Map mode and display mode selection (options dynamically filtered by device capabilities)
@@ -133,7 +133,7 @@ You can change the device connection settings anytime:
 
 The integration creates several entities for your JAAM device:
 
-- **Binary Sensors**: WebSocket connection status + 11 alert type sensors
+- **Binary Sensors**: WebSocket connection status + 13 alert type sensors
 - **Light**: Lamp control with brightness and color
 - **Select**: Map mode and display mode selection (options adapt to device capabilities)
 - **Sensors**: Home district, temperature, room climate (hardware-dependent), and 6 system diagnostic sensors
@@ -156,9 +156,11 @@ Find all entities in **Settings** → **Devices & Services** → **JAAM** → cl
 
 #### Alert Sensors
 
-11 separate binary sensors for different threat types (updated in real-time):
+13 separate binary sensors for different threat types (updated in real-time):
 
-- **Air Alert**: General air raid alert
+- **Air Alert (Deprecated)**: General air raid alert. Replaced by the **Yellow Alert Level** and **Red Alert Level** sensors — the new format distinguishes the severity level, so this sensor is kept only for compatibility with existing automations
+- **Yellow Alert Level**: Low-level air raid alert (requires firmware 5.1+)
+- **Red Alert Level**: High-level air raid alert, the primary trigger (requires firmware 5.1+)
 - **Artillery**: Artillery threat alert
 - **Urban Combat**: Urban combat operations alert
 - **Chemical**: Chemical hazard alert
@@ -169,6 +171,8 @@ Find all entities in **Settings** → **Devices & Services** → **JAAM** → cl
 - **Ballistic Missiles**: Ballistic missile alert
 - **Explosion Hazard**: Explosion danger alert
 - **Reconnaissance**: Reconnaissance drone alert
+
+> **Note**: On firmware older than 5.1, the yellow/red alert level sensors are not created at all (adaptive behavior, same as other hardware-dependent sensors). Once the firmware is updated to 5.1+, they appear automatically without re-adding the integration.
 
 Each alert sensor:
 
