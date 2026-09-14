@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from custom_components.jaam_ha.const import LOGGER, PARALLEL_UPDATES as PARALLEL_UPDATES
-from custom_components.jaam_ha.update.firmware import parse_version
+from custom_components.jaam_ha.update.firmware import JaamHAFirmwareUpdate
 from homeassistant.components.binary_sensor import BinarySensorEntityDescription
 from homeassistant.helpers import entity_registry as er
 
@@ -53,12 +53,25 @@ def _is_alert_fw_supported(key: str, fw_version: str | None) -> bool:
     if fw_version is None:
         return False
 
-    parsed = parse_version(fw_version)
-    # Unknown/unparseable version string - fail open like other version checks in this integration
-    if parsed is None:
-        return True
+    # Reuse the update entity's version ordering, which knows that a release beats any
+    # beta of the same X.Y.Z (a naive tuple/string comparison would get that backwards),
+    # and falls back to treating an unparseable fw_version as unsupported (fail closed).
+    return not JaamHAFirmwareUpdate.version_is_newer(min_version, fw_version)
 
-    return parsed >= min_version
+
+def _find_alert_entity_id(
+    entity_registry: er.EntityRegistry,
+    chip_id: str,
+    entry_id: str,
+    key: str,
+) -> str | None:
+    """Look up a home alert sensor's entity_id, trying both possible unique_id formats."""
+    unique_id_with_chip = f"jaam_{chip_id}_{key}"
+    unique_id_fallback = f"{entry_id}_{key}"
+
+    return entity_registry.async_get_entity_id(
+        "binary_sensor", "jaam_ha", unique_id_with_chip
+    ) or entity_registry.async_get_entity_id("binary_sensor", "jaam_ha", unique_id_fallback)
 
 
 def _remove_unsupported_alerts(
@@ -75,13 +88,7 @@ def _remove_unsupported_alerts(
         if _is_alert_fw_supported(key, fw_version):
             continue
 
-        unique_id_with_chip = f"jaam_{chip_id}_{key}"
-        unique_id_fallback = f"{entry.entry_id}_{key}"
-
-        entity_id = entity_registry.async_get_entity_id("binary_sensor", "jaam_ha", unique_id_with_chip)
-        if not entity_id:
-            entity_id = entity_registry.async_get_entity_id("binary_sensor", "jaam_ha", unique_id_fallback)
-
+        entity_id = _find_alert_entity_id(entity_registry, chip_id, entry.entry_id, key)
         if entity_id:
             LOGGER.info("Removing alert sensor %s - not supported by firmware version %s", entity_id, fw_version)
             entity_registry.async_remove(entity_id)
@@ -160,13 +167,7 @@ async def async_setup_entry(
             if _is_alert_fw_supported(key, fw_version):
                 continue
 
-            unique_id_with_chip = f"jaam_{chip_id}_{key}"
-            unique_id_fallback = f"{entry.entry_id}_{key}"
-
-            entity_id = entity_registry.async_get_entity_id("binary_sensor", "jaam_ha", unique_id_with_chip)
-            if not entity_id:
-                entity_id = entity_registry.async_get_entity_id("binary_sensor", "jaam_ha", unique_id_fallback)
-
+            entity_id = _find_alert_entity_id(entity_registry, chip_id, entry.entry_id, key)
             if entity_id:
                 LOGGER.info("Dynamically removing alert sensor %s - no longer supported", entity_id)
                 entity_registry.async_remove(entity_id)

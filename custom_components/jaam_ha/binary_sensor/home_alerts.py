@@ -48,12 +48,16 @@ ALERT_ICONS: dict[str, str] = {
     "red": "mdi:alarm-light",
 }
 
-# Alert types that require a minimum firmware version (major, minor, patch, beta).
+# Alert types that require a minimum firmware version.
 # Bits 11/12 (yellow/red alert level) were introduced in firmware 5.1 — see
 # AlertModes::ALERT_LOW / AlertModes::ALERT in jaam_fusion's JaamConfig.h.
-MIN_FW_VERSION_ALERT_LEVELS: dict[str, tuple[int, int, int, int]] = {
-    "yellow": (5, 1, 0, 0),
-    "red": (5, 1, 0, 0),
+# Pinned to 5.1-b8 (not plain "5.1"): that's the exact beta build the feature landed in -
+# firmware betas 5.1-b1..5.1-b7 predate it and must NOT be treated as supporting these bits.
+# Comparison must go through JaamHAFirmwareUpdate.version_is_newer(), which knows that a
+# release beats any beta of the same X.Y.Z; a naive tuple/string comparison does not.
+MIN_FW_VERSION_ALERT_LEVELS: dict[str, str] = {
+    "yellow": "5.1-b8",
+    "red": "5.1-b8",
 }
 
 # Safe icon (when alert is not active)

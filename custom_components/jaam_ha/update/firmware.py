@@ -163,7 +163,8 @@ class JaamHAFirmwareUpdate(UpdateEntity, JaamHAEntity):
 
         return self.coordinator.data.get("fw_latest") or self.installed_version
 
-    def version_is_newer(self, latest_version: str, installed_version: str) -> bool:
+    @staticmethod
+    def version_is_newer(latest_version: str, installed_version: str) -> bool:
         """Return True if latest_version is newer than installed_version.
 
         Custom version comparison logic:
