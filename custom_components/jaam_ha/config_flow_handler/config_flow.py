@@ -22,7 +22,16 @@ from custom_components.jaam_ha.config_flow_handler.schemas import (
     get_zeroconf_confirm_schema,
 )
 from custom_components.jaam_ha.config_flow_handler.validators import sanitize_host, validate_connection
-from custom_components.jaam_ha.const import CONF_HOST, CONF_PORT, DEFAULT_PORT, DOMAIN, LOGGER
+from custom_components.jaam_ha.const import (
+    CONF_DEVICE_TYPE,
+    CONF_HOST,
+    CONF_PORT,
+    DEFAULT_DEVICE_TYPE,
+    DEFAULT_PORT,
+    DOMAIN,
+    LOGGER,
+    ZEROCONF_TYPE_TO_DEVICE_TYPE,
+)
 from homeassistant import config_entries
 from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 
@@ -59,6 +68,7 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self._discovered_host: str | None = None
         self._discovered_port: int | None = None
         self._discovered_chip_id: str | None = None
+        self._discovered_device_type: str = DEFAULT_DEVICE_TYPE
 
     async def async_step_user(
         self,
@@ -89,22 +99,27 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 user_input[CONF_PORT] = int(user_input[CONF_PORT])
 
             try:
-                chip_id = await validate_connection(
+                connection_info = await validate_connection(
                     self.hass,
                     host=user_input[CONF_HOST],
                     port=user_input[CONF_PORT],
                 )
-                LOGGER.debug("Connection validated, chip_id: %s", chip_id)
+                LOGGER.debug(
+                    "Connection validated, chip_id: %s, device_type: %s",
+                    connection_info.chip_id,
+                    connection_info.device_type,
+                )
             except Exception as exception:  # noqa: BLE001
                 LOGGER.error("Connection validation failed: %s", exception)
                 errors["base"] = self._map_exception_to_error(exception)
             else:
                 # Set unique ID based on device chip_id
-                await self.async_set_unique_id(chip_id)
+                await self.async_set_unique_id(connection_info.chip_id)
                 self._abort_if_unique_id_configured()
 
                 # Use discovered device name if available (from zeroconf), otherwise chip_id
-                title = self._discovered_device_name or f"JAAM {chip_id}"
+                title = self._discovered_device_name or f"JAAM {connection_info.chip_id}"
+                user_input[CONF_DEVICE_TYPE] = connection_info.device_type
 
                 return self.async_create_entry(
                     title=title,
@@ -136,6 +151,7 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         """
         host = discovery_info.host
         port = discovery_info.port or DEFAULT_PORT
+        device_type = ZEROCONF_TYPE_TO_DEVICE_TYPE.get(discovery_info.type, DEFAULT_DEVICE_TYPE)
 
         # Extract chip_id, version, and device_name from TXT metadata
         # properties may contain bytes or str, handle both cases
@@ -157,10 +173,11 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_abort(reason="cannot_connect")
 
         LOGGER.info(
-            "Discovered JAAM device via zeroconf: %s (chip_id: %s, version: %s) at %s:%s",
+            "Discovered JAAM device via zeroconf: %s (chip_id: %s, version: %s, type: %s) at %s:%s",
             device_name or chip_id,
             chip_id,
             version,
+            device_type,
             host,
             port,
         )
@@ -208,6 +225,7 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self._discovered_host = host
         self._discovered_port = port
         self._discovered_chip_id = str(chip_id)
+        self._discovered_device_type = device_type
 
         # Show confirmation form instead of automatically creating entry
         return await self.async_step_zeroconf_confirm()
@@ -236,6 +254,7 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 data={
                     CONF_HOST: self._discovered_host,
                     CONF_PORT: self._discovered_port,
+                    CONF_DEVICE_TYPE: self._discovered_device_type,
                 },
             )
 

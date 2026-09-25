@@ -4,7 +4,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from custom_components.jaam_ha.const import DOMAIN, PARALLEL_UPDATES as PARALLEL_UPDATES
+from custom_components.jaam_ha.const import (
+    CONF_DEVICE_TYPE,
+    DEFAULT_DEVICE_TYPE,
+    DEVICE_TYPE_FUSION,
+    DOMAIN,
+    PARALLEL_UPDATES as PARALLEL_UPDATES,
+)
 from custom_components.jaam_ha.entity import async_setup_dynamic_entities
 from custom_components.jaam_ha.update.firmware import JaamHAFirmwareUpdate
 from homeassistant.components.binary_sensor import BinarySensorEntityDescription
@@ -96,36 +102,43 @@ async def async_setup_entry(
 ) -> None:
     """Set up the binary_sensor platform."""
     coordinator = entry.runtime_data.coordinator
+    is_fusion = entry.data.get(CONF_DEVICE_TYPE, DEFAULT_DEVICE_TYPE) == DEVICE_TYPE_FUSION
 
-    # Create home alert sensors that are always available
-    home_alert_entities = [
-        JaamHAHomeAlertSensor(
-            coordinator=coordinator,
-            entity_description=entity_description,
+    # Home alert flags (home_alert_flags) and the websocket_status/websocket_uptime fields
+    # are jaam_fusion-only - jaam_touch's TouchApi doesn't report either (its alert feed is
+    # a separate cloud relay connection the local API has no visibility into) - gated the
+    # same way as sensor/__init__.py's fusion-only statics, for the same reason.
+    if is_fusion:
+        home_alert_entities = [
+            JaamHAHomeAlertSensor(
+                coordinator=coordinator,
+                entity_description=entity_description,
+            )
+            for entity_description in STATIC_ALERT_DESCRIPTIONS
+        ]
+
+        websocket_status_entities = [
+            JaamHAWebSocketStatusSensor(
+                coordinator=coordinator,
+                entity_description=entity_description,
+            )
+            for entity_description in WEBSOCKET_STATUS_DESCRIPTIONS
+        ]
+
+        async_add_entities([*home_alert_entities, *websocket_status_entities])
+
+        async_setup_dynamic_entities(
+            hass,
+            entry,
+            coordinator,
+            async_add_entities,
+            domain="binary_sensor",
+            dynamic_descriptions=DYNAMIC_ALERT_DESCRIPTIONS,
+            should_create=_is_alert_fw_supported,
         )
-        for entity_description in STATIC_ALERT_DESCRIPTIONS
-    ]
 
-    # Create websocket status sensors
-    websocket_status_entities = [
-        JaamHAWebSocketStatusSensor(
-            coordinator=coordinator,
-            entity_description=entity_description,
-        )
-        for entity_description in WEBSOCKET_STATUS_DESCRIPTIONS
-    ]
-
-    async_add_entities([*home_alert_entities, *websocket_status_entities])
-
-    async_setup_dynamic_entities(
-        hass,
-        entry,
-        coordinator,
-        async_add_entities,
-        domain="binary_sensor",
-        dynamic_descriptions=DYNAMIC_ALERT_DESCRIPTIONS,
-        should_create=_is_alert_fw_supported,
-    )
+    if not is_fusion:
+        return
 
     # Keep the deprecated-sensor repair notice in sync with firmware support, and clean
     # it up if this config entry (device) is ever removed.

@@ -21,11 +21,12 @@ All validators are re-exported from this __init__.py for convenient imports.
 
 from __future__ import annotations
 
-from custom_components.jaam_ha.config_flow_handler.validators.credentials import validate_connection
+from custom_components.jaam_ha.config_flow_handler.validators.credentials import ConnectionInfo, validate_connection
 from custom_components.jaam_ha.config_flow_handler.validators.sanitizers import sanitize_host
 
 # Re-export all validators for convenient imports
 __all__ = [
+    "ConnectionInfo",
     "sanitize_host",
     "validate_connection",
 ]

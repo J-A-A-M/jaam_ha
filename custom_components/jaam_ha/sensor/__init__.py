@@ -4,7 +4,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from custom_components.jaam_ha.const import PARALLEL_UPDATES as PARALLEL_UPDATES
+from custom_components.jaam_ha.const import (
+    CONF_DEVICE_TYPE,
+    DEFAULT_DEVICE_TYPE,
+    DEVICE_TYPE_FUSION,
+    PARALLEL_UPDATES as PARALLEL_UPDATES,
+)
 from custom_components.jaam_ha.entity import async_setup_dynamic_entities
 from homeassistant.components.sensor import SensorEntityDescription
 
@@ -84,8 +89,13 @@ async def async_setup_entry(
 ) -> None:
     """Set up the sensor platform."""
     coordinator = entry.runtime_data.coordinator
+    is_fusion = entry.data.get(CONF_DEVICE_TYPE, DEFAULT_DEVICE_TYPE) == DEVICE_TYPE_FUSION
 
-    # Add always-available sensors (home district, system info)
+    # home_district reads the shared "home_region" field/DISTRICTS table both device types
+    # report identically, so it stays unconditional. home_district_temp and system_info are
+    # jaam_fusion-only fields (jaam_touch reports battery/wifi telemetry instead, on its own
+    # sensor platform - not built yet, see the touch-support plan) - gated on device_type
+    # rather than left to silently sit "unknown" forever on a touch device.
     async_add_entities(
         JaamHAHomeDistrictSensor(
             coordinator=coordinator,
@@ -93,20 +103,21 @@ async def async_setup_entry(
         )
         for entity_description in HOME_DISTRICT_DESCRIPTIONS
     )
-    async_add_entities(
-        JaamHAHomeDistrictTempSensor(
-            coordinator=coordinator,
-            entity_description=entity_description,
+    if is_fusion:
+        async_add_entities(
+            JaamHAHomeDistrictTempSensor(
+                coordinator=coordinator,
+                entity_description=entity_description,
+            )
+            for entity_description in HOME_DISTRICT_TEMP_DESCRIPTIONS
         )
-        for entity_description in HOME_DISTRICT_TEMP_DESCRIPTIONS
-    )
-    async_add_entities(
-        JaamHASystemInfoSensor(
-            coordinator=coordinator,
-            entity_description=entity_description,
+        async_add_entities(
+            JaamHASystemInfoSensor(
+                coordinator=coordinator,
+                entity_description=entity_description,
+            )
+            for entity_description in SYSTEM_INFO_DESCRIPTIONS
         )
-        for entity_description in SYSTEM_INFO_DESCRIPTIONS
-    )
 
     async_setup_dynamic_entities(
         hass,

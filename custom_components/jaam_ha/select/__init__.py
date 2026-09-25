@@ -4,7 +4,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from custom_components.jaam_ha.const import PARALLEL_UPDATES as PARALLEL_UPDATES
+from custom_components.jaam_ha.const import (
+    CONF_DEVICE_TYPE,
+    DEFAULT_DEVICE_TYPE,
+    DEVICE_TYPE_FUSION,
+    PARALLEL_UPDATES as PARALLEL_UPDATES,
+)
 from homeassistant.components.select import SelectEntityDescription
 
 from .display_mode import ENTITY_DESCRIPTIONS as DISPLAY_MODE_DESCRIPTIONS, JaamHADisplayModeSelect
@@ -28,6 +33,13 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the select platform."""
+    # map_mode/display_mode are jaam_fusion-specific option sets (map_mode includes
+    # "lamp", display_mode includes "microclimate", neither of which exists on
+    # jaam_touch) - jaam_touch's own single "mode" concept gets its own select entity
+    # rather than being force-fit into either of these, see the touch-specific select
+    # platform module.
+    if entry.data.get(CONF_DEVICE_TYPE, DEFAULT_DEVICE_TYPE) != DEVICE_TYPE_FUSION:
+        return
 
     # Add map mode select
     async_add_entities(

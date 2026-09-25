@@ -14,7 +14,29 @@ PARALLEL_UPDATES = 1
 # Configuration keys
 CONF_HOST = "host"
 CONF_PORT = "port"
+CONF_DEVICE_TYPE = "device_type"
 DEFAULT_PORT = 81
+
+# Device types - which firmware/protocol family a config entry talks to. Both speak the
+# same JSON-over-WebSocket envelope (see JaamHAApiClient), but expose different command
+# sets and entities: DEVICE_TYPE_FUSION is the original jaam_fusion LED-strip protocol
+# this integration was written against, DEVICE_TYPE_TOUCH is jaam_touch's local WS API
+# (TouchApi.cpp), added later and reusing this protocol only where the underlying concept
+# is identical (e.g. night_mode). Existing config entries from before this distinction
+# existed have no device_type key at all - DEFAULT_DEVICE_TYPE is what they fall back to,
+# and must stay "fusion" (every entry created before jaam_touch support existed talks to
+# a fusion device).
+DEVICE_TYPE_FUSION = "fusion"
+DEVICE_TYPE_TOUCH = "touch"
+DEFAULT_DEVICE_TYPE = DEVICE_TYPE_FUSION
+
+# Zeroconf service type (manifest.json's "zeroconf" list) -> device_type. Keeps the config
+# flow from needing a WS round trip just to tell the two device types apart at discovery
+# time - the service name itself already says which one matched.
+ZEROCONF_TYPE_TO_DEVICE_TYPE: dict[str, str] = {
+    "_jaam-ws._tcp.local.": DEVICE_TYPE_FUSION,
+    "_jaam-touch-ws._tcp.local.": DEVICE_TYPE_TOUCH,
+}
 
 # Map mode IDs
 MAP_MODE_DISABLED = 0
