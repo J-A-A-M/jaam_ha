@@ -111,4 +111,10 @@ SUPPORTED_SWITCH_MAPPING: dict[str, str] = {
     "night_mode": "night_mode",
     "map": "map",
     "display": "display",
+    "sound": "sound_enabled",
 }
+
+# jaam_touch's single "mode" select options, in TouchApi.cpp's modeToString() order -
+# unlike jaam_fusion's map_mode/display_mode, this is one flat enum with no separate
+# id mapping (the wire value IS the option string).
+TOUCH_MODE_ORDER: list[str] = ["alarm_map", "weather", "radiation", "energy"]

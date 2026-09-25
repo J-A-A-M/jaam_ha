@@ -95,6 +95,14 @@
       },
       "websocket_status": {
         "name": "WebSocket Status"
+      },
+      "battery_charging": {
+        "name": "Battery Charging"
+      }
+    },
+    "button": {
+      "reboot": {
+        "name": "Reboot"
       }
     },
     "event": {
@@ -145,6 +153,26 @@
           "microclimate": "Microclimate",
           "combined": "Combined"
         }
+      },
+      "mode": {
+        "name": "Mode",
+        "state": {
+          "alarm_map": "Alarm Map",
+          "weather": "Weather",
+          "radiation": "Radiation",
+          "energy": "Energy"
+        }
+      }
+    },
+    "number": {
+      "sound_volume": {
+        "name": "Sound Volume"
+      },
+      "brightness_day": {
+        "name": "Day Brightness"
+      },
+      "brightness_night": {
+        "name": "Night Brightness"
       }
     },
     "switch": {
@@ -156,11 +184,23 @@
       },
       "map": {
         "name": "Map"
+      },
+      "sound_enabled": {
+        "name": "Sound"
       }
     },
     "sensor": {
       "home_district": {
         "name": "Home District"
+      },
+      "battery_percent": {
+        "name": "Battery"
+      },
+      "battery_voltage_mv": {
+        "name": "Battery Voltage"
+      },
+      "battery_runtime_hours": {
+        "name": "Battery Runtime"
       },
       "used_memory": {
         "name": "Used Memory"

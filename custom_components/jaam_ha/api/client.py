@@ -863,6 +863,86 @@ class JaamHAApiClient:
 
         await self._send_command(command)
 
+    async def async_set_touch_mode(self, mode: str) -> None:
+        """
+        Set jaam_touch's display mode (alarm_map/weather/radiation/energy).
+
+        A jaam_touch-only concept - TouchApi.cpp's single "mode" field, distinct from
+        jaam_fusion's separate map_mode/display_mode axes (see async_set_map_mode).
+
+        Args:
+            mode: One of "alarm_map", "weather", "radiation", "energy".
+
+        Raises:
+            JaamHAApiClientCommunicationError: If command fails.
+
+        """
+        await self._send_command({"type": "set_mode", "mode": mode})
+
+    async def async_set_sound_enabled(self, enabled: bool) -> None:
+        """
+        Enable/disable jaam_touch's UI sound.
+
+        Args:
+            enabled: True to enable sound, False to disable.
+
+        Raises:
+            JaamHAApiClientCommunicationError: If command fails.
+
+        """
+        await self._send_command({"type": "set_sound_enabled", "enabled": enabled})
+
+    async def async_set_sound_volume(self, volume: int) -> None:
+        """
+        Set jaam_touch's UI sound volume.
+
+        Args:
+            volume: Volume percentage (0-100).
+
+        Raises:
+            JaamHAApiClientCommunicationError: If command fails.
+
+        """
+        await self._send_command({"type": "set_sound_volume", "volume": volume})
+
+    async def async_set_brightness_day(self, level: int) -> None:
+        """
+        Set jaam_touch's day-range screen brightness.
+
+        Args:
+            level: Raw brightness level (0-255), matches the device's own scale.
+
+        Raises:
+            JaamHAApiClientCommunicationError: If command fails.
+
+        """
+        await self._send_command({"type": "set_brightness_day", "level": level})
+
+    async def async_set_brightness_night(self, level: int) -> None:
+        """
+        Set jaam_touch's night-range screen brightness.
+
+        Args:
+            level: Raw brightness level (0-255), matches the device's own scale.
+
+        Raises:
+            JaamHAApiClientCommunicationError: If command fails.
+
+        """
+        await self._send_command({"type": "set_brightness_night", "level": level})
+
+    async def async_reboot(self) -> None:
+        """
+        Reboot the device.
+
+        jaam_touch-only - jaam_fusion's JaamApi has no equivalent WS command.
+
+        Raises:
+            JaamHAApiClientCommunicationError: If command fails.
+
+        """
+        await self._send_command({"type": "reboot"})
+
     async def async_get_data(self) -> JaamHADeviceData:
         """
         Get current device data.

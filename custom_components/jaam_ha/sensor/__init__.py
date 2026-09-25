@@ -18,6 +18,7 @@ from .home_district import ENTITY_DESCRIPTIONS as HOME_DISTRICT_DESCRIPTIONS, Ja
 from .home_district_temp import ENTITY_DESCRIPTIONS as HOME_DISTRICT_TEMP_DESCRIPTIONS, JaamHAHomeDistrictTempSensor
 from .light_level import ENTITY_DESCRIPTIONS as LIGHT_LEVEL_DESCRIPTIONS, JaamHALightLevelSensor
 from .system_info import ENTITY_DESCRIPTIONS as SYSTEM_INFO_DESCRIPTIONS, JaamHASystemInfoSensor
+from .touch_status import ENTITY_DESCRIPTIONS as TOUCH_STATUS_DESCRIPTIONS, JaamHATouchStatusSensor
 
 if TYPE_CHECKING:
     from custom_components.jaam_ha.data import JaamHAConfigEntry
@@ -32,6 +33,7 @@ ENTITY_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
     *SYSTEM_INFO_DESCRIPTIONS,
     *HOME_CLIMATE_DESCRIPTIONS,
     *LIGHT_LEVEL_DESCRIPTIONS,
+    *TOUCH_STATUS_DESCRIPTIONS,
 )
 
 # Dynamic sensor descriptions that should be created/removed based on hardware support
@@ -117,6 +119,14 @@ async def async_setup_entry(
                 entity_description=entity_description,
             )
             for entity_description in SYSTEM_INFO_DESCRIPTIONS
+        )
+    else:
+        async_add_entities(
+            JaamHATouchStatusSensor(
+                coordinator=coordinator,
+                entity_description=entity_description,
+            )
+            for entity_description in TOUCH_STATUS_DESCRIPTIONS
         )
 
     async_setup_dynamic_entities(

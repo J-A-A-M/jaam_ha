@@ -21,6 +21,10 @@ from .home_alerts import (
     MIN_FW_VERSION_ALERT_LEVELS,
     JaamHAHomeAlertSensor,
 )
+from .touch_battery_charging import (
+    ENTITY_DESCRIPTIONS as TOUCH_BATTERY_CHARGING_DESCRIPTIONS,
+    JaamHATouchBatteryChargingSensor,
+)
 from .websocket_status import ENTITY_DESCRIPTIONS as WEBSOCKET_STATUS_DESCRIPTIONS, JaamHAWebSocketStatusSensor
 
 if TYPE_CHECKING:
@@ -138,6 +142,13 @@ async def async_setup_entry(
         )
 
     if not is_fusion:
+        async_add_entities(
+            JaamHATouchBatteryChargingSensor(
+                coordinator=coordinator,
+                entity_description=entity_description,
+            )
+            for entity_description in TOUCH_BATTERY_CHARGING_DESCRIPTIONS
+        )
         return
 
     # Keep the deprecated-sensor repair notice in sync with firmware support, and clean
