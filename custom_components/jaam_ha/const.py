@@ -30,6 +30,15 @@ DEVICE_TYPE_FUSION = "fusion"
 DEVICE_TYPE_TOUCH = "touch"
 DEFAULT_DEVICE_TYPE = DEVICE_TYPE_FUSION
 
+# Human-readable device type label - shown in the discovery confirmation dialog (config
+# flow) and as the device page's "model" (entity/base.py), so it's obvious at a glance
+# which firmware/protocol family a given JAAM device is, without having to open its
+# entities to guess from which ones exist.
+DEVICE_TYPE_LABELS: dict[str, str] = {
+    DEVICE_TYPE_FUSION: "JAAM Fusion",
+    DEVICE_TYPE_TOUCH: "JAAM Touch",
+}
+
 # Zeroconf service type (manifest.json's "zeroconf" list) -> device_type. Keeps the config
 # flow from needing a WS round trip just to tell the two device types apart at discovery
 # time - the service name itself already says which one matched.

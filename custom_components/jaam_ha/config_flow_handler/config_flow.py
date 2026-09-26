@@ -28,6 +28,7 @@ from custom_components.jaam_ha.const import (
     CONF_PORT,
     DEFAULT_DEVICE_TYPE,
     DEFAULT_PORT,
+    DEVICE_TYPE_LABELS,
     DOMAIN,
     LOGGER,
     ZEROCONF_TYPE_TO_DEVICE_TYPE,
@@ -40,6 +41,18 @@ ERROR_MAP = {
     "JaamHAApiClientAuthenticationError": "auth",
     "JaamHAApiClientCommunicationError": "connection",
 }
+
+
+def _build_display_name(device_type: str, device_name: str | None, chip_id: str) -> str:
+    """
+    Build a "<Fusion/Touch label> (<device name or chip id>)" display name.
+
+    Used for both the discovery confirmation dialog's title and the config entry's own
+    title, so it's explicit which device type this is before the entry is even created -
+    not just discoverable later from the device page's model field (entity/base.py).
+    """
+    label = DEVICE_TYPE_LABELS.get(device_type, DEVICE_TYPE_LABELS[DEFAULT_DEVICE_TYPE])
+    return f"{label} ({device_name or chip_id})"
 
 
 class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
@@ -117,8 +130,11 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 await self.async_set_unique_id(connection_info.chip_id)
                 self._abort_if_unique_id_configured()
 
-                # Use discovered device name if available (from zeroconf), otherwise chip_id
-                title = self._discovered_device_name or f"JAAM {connection_info.chip_id}"
+                # Use discovered device name if available (from zeroconf), otherwise build
+                # one from this connection's own device_type + chip_id.
+                title = self._discovered_device_name or _build_display_name(
+                    connection_info.device_type, None, connection_info.chip_id
+                )
                 user_input[CONF_DEVICE_TYPE] = connection_info.device_type
 
                 return self.async_create_entry(
@@ -213,9 +229,10 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
                 return self.async_abort(reason="already_configured")
 
-        # Store discovery info for confirmation step
-        # Use device_name from TXT if available, otherwise fallback to chip_id
-        display_name = device_name or f"JAAM {chip_id}"
+        # Store discovery info for confirmation step - always prefixed with the explicit
+        # Fusion/Touch label (see _build_display_name), not just the device's own name/chip_id,
+        # so the discovery card itself says which device type this is before it's even added.
+        display_name = _build_display_name(device_type, device_name, str(chip_id))
         self.context["title_placeholders"] = {
             "name": display_name,
         }

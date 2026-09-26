@@ -13,7 +13,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from custom_components.jaam_ha.const import ATTRIBUTION, CONF_HOST, LOGGER
+from custom_components.jaam_ha.const import (
+    ATTRIBUTION,
+    CONF_DEVICE_TYPE,
+    CONF_HOST,
+    DEFAULT_DEVICE_TYPE,
+    DEVICE_TYPE_LABELS,
+    LOGGER,
+)
 from custom_components.jaam_ha.coordinator import JaamHADataUpdateCoordinator
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -124,8 +131,17 @@ class JaamHAEntity(CoordinatorEntity[JaamHADataUpdateCoordinator]):
         else:
             device_name = self.coordinator.config_entry.title
 
-        # Get model name and firmware version from current data
-        model_name = self.coordinator.data.get("device_name") if self.coordinator.data else None
+        # "model" is the explicit Fusion/Touch label (not the device's own custom name) -
+        # so it's obvious at a glance which firmware/protocol family this device is without
+        # opening it to guess from which entities exist. The device's own custom name (e.g.
+        # jaam_fusion's user-set "device_name" setting) goes in model_id instead, so it's
+        # still visible but doesn't get confused with the type label; omitted entirely when
+        # it's identical to the type label (jaam_touch always reports "JAAM Touch" as its
+        # device_name, which would just be a redundant duplicate here).
+        device_type = self.coordinator.config_entry.data.get(CONF_DEVICE_TYPE, DEFAULT_DEVICE_TYPE)
+        model_name = DEVICE_TYPE_LABELS.get(device_type, DEVICE_TYPE_LABELS[DEFAULT_DEVICE_TYPE])
+        custom_name = self.coordinator.data.get("device_name") if self.coordinator.data else None
+        model_id = custom_name if custom_name and custom_name != model_name else None
         fw_version = self.coordinator.data.get("fw_version") if self.coordinator.data else None
 
         # Build configuration URL from config entry
@@ -142,6 +158,7 @@ class JaamHAEntity(CoordinatorEntity[JaamHADataUpdateCoordinator]):
             name=device_name,
             manufacturer="JAAM",
             model=model_name,
+            model_id=model_id,
             serial_number=device_identifier,
             sw_version=fw_version or "Unknown",
             configuration_url=config_url,
