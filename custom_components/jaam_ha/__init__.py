@@ -21,8 +21,18 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import TYPE_CHECKING
 
-from custom_components.jaam_ha.const import CONF_HOST, CONF_PORT, DEFAULT_PORT, DOMAIN, LOGGER
+from custom_components.jaam_ha.const import (
+    CONF_DEVICE_TYPE,
+    CONF_HOST,
+    CONF_PORT,
+    DEFAULT_DEVICE_TYPE,
+    DEFAULT_PORT,
+    DEVICE_TYPE_TOUCH,
+    DOMAIN,
+    LOGGER,
+)
 from homeassistant.const import Platform
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import homeassistant.helpers.config_validation as cv
 from homeassistant.loader import async_get_loaded_integration
@@ -142,6 +152,24 @@ async def async_setup_entry(
     await coordinator.async_config_entry_first_refresh()
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    # jaam_touch has no web interface, so its device page must not show a "Visit" link.
+    # Entities never send a configuration_url for it (see entity/base.py), but the device
+    # registry ignores a missing/None value, so a URL stored by an earlier version stays
+    # until it's cleared explicitly.
+    if entry.data.get(CONF_DEVICE_TYPE, DEFAULT_DEVICE_TYPE) == DEVICE_TYPE_TOUCH:
+        device_registry = dr.async_get(hass)
+        for device in dr.async_entries_for_config_entry(device_registry, entry.entry_id):
+            if device.configuration_url is not None:
+                device_registry.async_update_device(device.id, configuration_url=None)
+
+        # The single live-range "Sound Volume" number is gone (the device only reports day and
+        # night volume now) - drop the one an earlier version registered.
+        entity_registry = er.async_get(hass)
+        for entity in er.async_entries_for_config_entry(entity_registry, entry.entry_id):
+            if entity.unique_id.endswith("_sound_volume"):
+                entity_registry.async_remove(entity.entity_id)
+
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
 
     return True

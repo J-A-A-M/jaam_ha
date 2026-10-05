@@ -108,10 +108,8 @@ async def async_setup_entry(
     coordinator = entry.runtime_data.coordinator
     is_fusion = entry.data.get(CONF_DEVICE_TYPE, DEFAULT_DEVICE_TYPE) == DEVICE_TYPE_FUSION
 
-    # Home alert flags (home_alert_flags) and the websocket_status/websocket_uptime fields
-    # are jaam_fusion-only - jaam_touch's TouchApi doesn't report either (its alert feed is
-    # a separate cloud relay connection the local API has no visibility into) - gated the
-    # same way as sensor/__init__.py's fusion-only statics, for the same reason.
+    # jaam_fusion gates the alert sensors on firmware version (yellow/red) and runs the
+    # deprecated-air-alert repair flow; jaam_touch gets its own static set below.
     if is_fusion:
         home_alert_entities = [
             JaamHAHomeAlertSensor(
@@ -142,12 +140,29 @@ async def async_setup_entry(
         )
 
     if not is_fusion:
+        # jaam_touch reports the same flags16 bit layout (AlertTypes.h) and the websocket_*
+        # fields as jaam_fusion. Its firmware version has no relation to fusion's 5.1-b8
+        # gate, and yellow/red are always part of its flags, so every alert but the legacy
+        # "air" bit (never set by touch) is created statically.
         async_add_entities(
-            JaamHATouchBatteryChargingSensor(
-                coordinator=coordinator,
-                entity_description=entity_description,
-            )
-            for entity_description in TOUCH_BATTERY_CHARGING_DESCRIPTIONS
+            [
+                *(
+                    JaamHAHomeAlertSensor(coordinator=coordinator, entity_description=entity_description)
+                    for entity_description in HOME_ALERTS_DESCRIPTIONS
+                    if entity_description.key != "home_alert_air"
+                ),
+                *(
+                    JaamHAWebSocketStatusSensor(coordinator=coordinator, entity_description=entity_description)
+                    for entity_description in WEBSOCKET_STATUS_DESCRIPTIONS
+                ),
+                *(
+                    JaamHATouchBatteryChargingSensor(
+                        coordinator=coordinator,
+                        entity_description=entity_description,
+                    )
+                    for entity_description in TOUCH_BATTERY_CHARGING_DESCRIPTIONS
+                ),
+            ]
         )
         return
 

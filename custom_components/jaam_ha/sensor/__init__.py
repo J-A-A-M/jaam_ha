@@ -95,9 +95,9 @@ async def async_setup_entry(
 
     # home_district reads the shared "home_region" field/DISTRICTS table both device types
     # report identically, so it stays unconditional. home_district_temp and system_info are
-    # jaam_fusion-only fields (jaam_touch reports battery/wifi telemetry instead, on its own
-    # sensor platform - not built yet, see the touch-support plan) - gated on device_type
-    # rather than left to silently sit "unknown" forever on a touch device.
+    # reported by both device types (jaam_touch under the same names and units); jaam_touch
+    # additionally has its own battery/wifi sensors, which already include wifi_signal, so
+    # that one system_info sensor is skipped there (same key would mean the same unique_id).
     async_add_entities(
         JaamHAHomeDistrictSensor(
             coordinator=coordinator,
@@ -105,22 +105,22 @@ async def async_setup_entry(
         )
         for entity_description in HOME_DISTRICT_DESCRIPTIONS
     )
-    if is_fusion:
-        async_add_entities(
-            JaamHAHomeDistrictTempSensor(
-                coordinator=coordinator,
-                entity_description=entity_description,
-            )
-            for entity_description in HOME_DISTRICT_TEMP_DESCRIPTIONS
+    async_add_entities(
+        JaamHAHomeDistrictTempSensor(
+            coordinator=coordinator,
+            entity_description=entity_description,
         )
-        async_add_entities(
-            JaamHASystemInfoSensor(
-                coordinator=coordinator,
-                entity_description=entity_description,
-            )
-            for entity_description in SYSTEM_INFO_DESCRIPTIONS
+        for entity_description in HOME_DISTRICT_TEMP_DESCRIPTIONS
+    )
+    async_add_entities(
+        JaamHASystemInfoSensor(
+            coordinator=coordinator,
+            entity_description=entity_description,
         )
-    else:
+        for entity_description in SYSTEM_INFO_DESCRIPTIONS
+        if is_fusion or entity_description.key != "wifi_signal"
+    )
+    if not is_fusion:
         async_add_entities(
             JaamHATouchStatusSensor(
                 coordinator=coordinator,

@@ -19,6 +19,7 @@ from custom_components.jaam_ha.const import (
     CONF_HOST,
     DEFAULT_DEVICE_TYPE,
     DEVICE_TYPE_LABELS,
+    DEVICE_TYPE_TOUCH,
     LOGGER,
 )
 from custom_components.jaam_ha.coordinator import JaamHADataUpdateCoordinator
@@ -144,9 +145,10 @@ class JaamHAEntity(CoordinatorEntity[JaamHADataUpdateCoordinator]):
         model_id = custom_name if custom_name and custom_name != model_name else None
         fw_version = self.coordinator.data.get("fw_version") if self.coordinator.data else None
 
-        # Build configuration URL from config entry
+        # Build configuration URL from config entry. jaam_touch has no web interface, so it
+        # gets none (otherwise the device page shows a "Visit" link to a dead page).
         host = self.coordinator.config_entry.data.get(CONF_HOST)
-        config_url = f"http://{host}" if host else None
+        config_url = f"http://{host}" if host and device_type != DEVICE_TYPE_TOUCH else None
 
         return DeviceInfo(
             identifiers={

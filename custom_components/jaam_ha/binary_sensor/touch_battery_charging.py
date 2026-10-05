@@ -1,4 +1,4 @@
-"""jaam_touch battery charging binary sensor for jaam_ha."""
+"""jaam_touch battery charging / external power binary sensors for jaam_ha."""
 
 from __future__ import annotations
 
@@ -24,11 +24,18 @@ ENTITY_DESCRIPTIONS = (
         entity_category=EntityCategory.DIAGNOSTIC,
         has_entity_name=True,
     ),
+    BinarySensorEntityDescription(
+        key="battery_external_power",
+        translation_key="battery_external_power",
+        device_class=BinarySensorDeviceClass.PLUG,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        has_entity_name=True,
+    ),
 )
 
 
 class JaamHATouchBatteryChargingSensor(BinarySensorEntity, JaamHAEntity):
-    """jaam_touch battery charging binary sensor class."""
+    """jaam_touch battery charging / external power binary sensor class (reads its description's key)."""
 
     def __init__(
         self,
@@ -40,5 +47,5 @@ class JaamHATouchBatteryChargingSensor(BinarySensorEntity, JaamHAEntity):
 
     @property
     def is_on(self) -> bool | None:
-        """Return True if the battery is charging."""
+        """Return the reported flag (charging / external power connected)."""
         return self.coordinator.data.get(self.entity_description.key)
