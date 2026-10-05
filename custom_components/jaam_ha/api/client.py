@@ -42,6 +42,55 @@ class JaamHAApiClientAuthenticationError(
 # Type alias for device data
 type JaamHADeviceData = dict[str, Any]
 
+# jaam_touch fields (TouchApi.cpp) copied verbatim into the data dict, under the same name the
+# device sends them with - the touch entities' descriptions use these as their keys. Present in
+# both the initial_state message and the periodic "telemetry" one; absent for jaam_fusion.
+TOUCH_PASSTHROUGH_KEYS = (
+    "mode",
+    "sound_enabled",
+    "sound_volume_day",
+    "sound_volume_night",
+    "brightness_day",
+    "brightness_night",
+    "night_start_hour",
+    "night_start_min",
+    "night_end_hour",
+    "night_end_min",
+    "night_mode_active",
+    "battery_percent",
+    "battery_charging",
+    "battery_connected",
+    "battery_external_power",
+    "battery_voltage_mv",
+    "battery_runtime_hours",
+    "wifi_connected",
+)
+
+
+def _wifi_uptime_seconds(data: dict[str, Any]) -> int | None:
+    """WiFi uptime in seconds: jaam_fusion sends `wifi_uptime`, jaam_touch `wifi_uptime_ms`."""
+    if data.get("wifi_uptime") is not None:
+        return data["wifi_uptime"]
+    if data.get("wifi_uptime_ms") is not None:
+        return int(data["wifi_uptime_ms"]) // 1000
+    return None
+
+
+# jaam_touch "<setting>_change" broadcasts: message type -> {message field: data key}.
+TOUCH_CHANGE_MESSAGES: dict[str, dict[str, str]] = {
+    "mode_change": {"mode": "mode"},
+    "sound_enabled_change": {"enabled": "sound_enabled"},
+    "sound_volume_change": {
+        "volume_day": "sound_volume_day",
+        "volume_night": "sound_volume_night",
+    },
+    "external_power_change": {"battery_external_power": "battery_external_power"},
+    "brightness_day_change": {"level": "brightness_day"},
+    "brightness_night_change": {"level": "brightness_night"},
+    "night_start_change": {"hour": "night_start_hour", "minute": "night_start_min"},
+    "night_end_change": {"hour": "night_end_hour", "minute": "night_end_min"},
+}
+
 
 class JaamHAApiClient:
     """
@@ -405,7 +454,7 @@ class JaamHAApiClient:
             "home_district_temp": data.get("home_district_temp"),
             "used_memory": data.get("used_memory"),
             "uptime": data.get("uptime"),
-            "wifi_uptime": data.get("wifi_uptime"),
+            "wifi_uptime": _wifi_uptime_seconds(data),
             "wifi_signal": data.get("wifi_signal"),
             "cpu_temp": data.get("cpu_temp"),
             "websocket_status": data.get("websocket_status"),
@@ -427,6 +476,11 @@ class JaamHAApiClient:
             device_data["climate_pressure"] = data["climate_pressure"]
         if "light_level" in data:
             device_data["light_level"] = data["light_level"]
+
+        # jaam_touch fields, same presence rule as the sensors above
+        for key in TOUCH_PASSTHROUGH_KEYS:
+            if key in data:
+                device_data[key] = data[key]
 
         # Add switch fields if present (map API keys to entity keys)
         if "night_mode" in data:
@@ -599,7 +653,24 @@ class JaamHAApiClient:
 
             elif msg_type == "home_region_change":
                 if self._data:
-                    self._data["home_region"] = data.get("home_region")
+                    # jaam_touch sends "region_id", jaam_fusion "home_region"
+                    self._data["home_region"] = data.get("home_region", data.get("region_id"))
+
+            elif msg_type == "telemetry":
+                if self._data:
+                    for key in TOUCH_PASSTHROUGH_KEYS:
+                        if key in data:
+                            self._data[key] = data[key]
+                    if "wifi_signal" in data:
+                        self._data["wifi_signal"] = data["wifi_signal"]
+                    if (wifi_uptime := _wifi_uptime_seconds(data)) is not None:
+                        self._data["wifi_uptime"] = wifi_uptime
+
+            elif msg_type in TOUCH_CHANGE_MESSAGES:
+                if self._data:
+                    for field, key in TOUCH_CHANGE_MESSAGES[msg_type].items():
+                        if field in data:
+                            self._data[key] = data[field]
 
             elif msg_type == "home_alert_change":
                 if self._data:
@@ -614,7 +685,7 @@ class JaamHAApiClient:
                 if self._data:
                     self._data["used_memory"] = data.get("used_memory")
                     self._data["uptime"] = data.get("uptime")
-                    self._data["wifi_uptime"] = data.get("wifi_uptime")
+                    self._data["wifi_uptime"] = _wifi_uptime_seconds(data)
                     self._data["wifi_signal"] = data.get("wifi_signal")
                     self._data["cpu_temp"] = data.get("cpu_temp")
                     self._data["websocket_status"] = data.get("websocket_status")
@@ -639,8 +710,9 @@ class JaamHAApiClient:
                     self._data["light_level"] = data["light_level"]
 
             elif msg_type == "night_mode_change":
-                if self._data and "night_mode" in data:
-                    self._data["night_mode"] = data["night_mode"]
+                # jaam_fusion sends "night_mode", jaam_touch "enabled"
+                if self._data and (value := data.get("night_mode", data.get("enabled"))) is not None:
+                    self._data["night_mode"] = value
 
             elif msg_type == "map_enabled_change":
                 if self._data and "map_enabled" in data:
@@ -892,9 +964,9 @@ class JaamHAApiClient:
         """
         await self._send_command({"type": "set_sound_enabled", "enabled": enabled})
 
-    async def async_set_sound_volume(self, volume: int) -> None:
+    async def async_set_sound_volume_day(self, volume: int) -> None:
         """
-        Set jaam_touch's UI sound volume.
+        Set jaam_touch's day-range UI sound volume.
 
         Args:
             volume: Volume percentage (0-100).
@@ -903,7 +975,20 @@ class JaamHAApiClient:
             JaamHAApiClientCommunicationError: If command fails.
 
         """
-        await self._send_command({"type": "set_sound_volume", "volume": volume})
+        await self._send_command({"type": "set_sound_volume_day", "volume": volume})
+
+    async def async_set_sound_volume_night(self, volume: int) -> None:
+        """
+        Set jaam_touch's night-range UI sound volume.
+
+        Args:
+            volume: Volume percentage (0-100).
+
+        Raises:
+            JaamHAApiClientCommunicationError: If command fails.
+
+        """
+        await self._send_command({"type": "set_sound_volume_night", "volume": volume})
 
     async def async_set_brightness_day(self, level: int) -> None:
         """

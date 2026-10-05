@@ -98,6 +98,9 @@
       },
       "battery_charging": {
         "name": "Заряджання батареї"
+      },
+      "battery_external_power": {
+        "name": "Зовнішнє живлення"
       }
     },
     "button": {
@@ -165,8 +168,11 @@
       }
     },
     "number": {
-      "sound_volume": {
-        "name": "Гучність звуку"
+      "sound_volume_day": {
+        "name": "Денна гучність звуку"
+      },
+      "sound_volume_night": {
+        "name": "Нічна гучність звуку"
       },
       "brightness_day": {
         "name": "Денна яскравість"
@@ -178,6 +184,9 @@
     "switch": {
       "night_mode": {
         "name": "Режим нічної яскравості"
+      },
+      "night_mode_touch": {
+        "name": "Нічний режим"
       },
       "display": {
         "name": "Дисплей"

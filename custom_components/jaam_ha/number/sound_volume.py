@@ -13,9 +13,19 @@ if TYPE_CHECKING:
 
 ENTITY_DESCRIPTIONS = (
     NumberEntityDescription(
-        key="sound_volume",
-        translation_key="sound_volume",
+        key="sound_volume_day",
+        translation_key="sound_volume_day",
         icon="mdi:volume-high",
+        native_min_value=0,
+        native_max_value=100,
+        native_step=1,
+        mode=NumberMode.SLIDER,
+        has_entity_name=True,
+    ),
+    NumberEntityDescription(
+        key="sound_volume_night",
+        translation_key="sound_volume_night",
+        icon="mdi:volume-medium",
         native_min_value=0,
         native_max_value=100,
         native_step=1,
@@ -26,7 +36,10 @@ ENTITY_DESCRIPTIONS = (
 
 
 class JaamHASoundVolumeNumber(NumberEntity, JaamHAEntity):
-    """jaam_touch UI sound volume number entity (0-100%, matches the device's own scale)."""
+    """jaam_touch UI sound volume number entity (0-100%, matches the device's own scale).
+
+    One class for both keys: `sound_volume_day` and `sound_volume_night`.
+    """
 
     def __init__(
         self,
@@ -44,5 +57,8 @@ class JaamHASoundVolumeNumber(NumberEntity, JaamHAEntity):
     async def async_set_native_value(self, value: float) -> None:
         """Set the volume percentage."""
         client = self.coordinator.config_entry.runtime_data.client
-        await client.async_set_sound_volume(int(value))
+        if self.entity_description.key == "sound_volume_night":
+            await client.async_set_sound_volume_night(int(value))
+        else:
+            await client.async_set_sound_volume_day(int(value))
         await self.coordinator.async_request_refresh()

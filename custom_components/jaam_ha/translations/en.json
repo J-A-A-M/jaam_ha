@@ -98,6 +98,9 @@
       },
       "battery_charging": {
         "name": "Battery Charging"
+      },
+      "battery_external_power": {
+        "name": "External Power"
       }
     },
     "button": {
@@ -165,8 +168,11 @@
       }
     },
     "number": {
-      "sound_volume": {
-        "name": "Sound Volume"
+      "sound_volume_day": {
+        "name": "Day Sound Volume"
+      },
+      "sound_volume_night": {
+        "name": "Night Sound Volume"
       },
       "brightness_day": {
         "name": "Day Brightness"
@@ -178,6 +184,9 @@
     "switch": {
       "night_mode": {
         "name": "Night Brightness Mode"
+      },
+      "night_mode_touch": {
+        "name": "Night Mode"
       },
       "display": {
         "name": "Display"
