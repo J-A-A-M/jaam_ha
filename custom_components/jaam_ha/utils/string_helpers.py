@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import re
 
+from custom_components.jaam_ha.const import DEFAULT_DEVICE_TYPE, DEVICE_TYPE_LABELS
+
 
 def slugify_name(name: str) -> str:
     """
@@ -58,3 +60,19 @@ def sanitize_string(text: str) -> str:
     """
     # Remove characters that might be problematic in filenames or IDs
     return re.sub(r'[<>:"/\\|?*\x00-\x1f]', "", text)
+
+
+def build_display_name(device_type: str, device_name: str | None, chip_id: str) -> str:
+    """
+    Build the "<Fusion/Touch label> (<device name or chip id>)" title shown for a device.
+
+    One place for every device-facing title - the discovery card, the config entry (hub)
+    title and its later renames - so both device types always read the same way. When the
+    device's own name already says it (jaam_touch's default name is literally "JAAM Touch"),
+    the label is not repeated: "JAAM Touch", not "JAAM Touch (JAAM Touch)".
+    """
+    label = DEVICE_TYPE_LABELS.get(device_type, DEVICE_TYPE_LABELS[DEFAULT_DEVICE_TYPE])
+    name = device_name or chip_id
+    if label.lower() in name.lower():
+        return name
+    return f"{label} ({name})"

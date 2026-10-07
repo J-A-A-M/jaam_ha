@@ -14,6 +14,10 @@
     {
       "type": "_jaam-ws._tcp.local.",
       "name": "*"
+    },
+    {
+      "type": "_jaam-touch-ws._tcp.local.",
+      "name": "*"
     }
   ]
 }

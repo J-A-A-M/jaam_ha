@@ -95,6 +95,17 @@
       },
       "websocket_status": {
         "name": "WebSocket Status"
+      },
+      "battery_charging": {
+        "name": "Battery Charging"
+      },
+      "battery_external_power": {
+        "name": "External Power"
+      }
+    },
+    "button": {
+      "reboot": {
+        "name": "Reboot"
       }
     },
     "event": {
@@ -145,22 +156,60 @@
           "microclimate": "Microclimate",
           "combined": "Combined"
         }
+      },
+      "mode": {
+        "name": "Mode",
+        "state": {
+          "alarm_map": "Alarm Map",
+          "weather": "Weather",
+          "radiation": "Radiation",
+          "energy": "Energy"
+        }
+      }
+    },
+    "number": {
+      "sound_volume_day": {
+        "name": "Day Sound Volume"
+      },
+      "sound_volume_night": {
+        "name": "Night Sound Volume"
+      },
+      "brightness_day": {
+        "name": "Day Brightness"
+      },
+      "brightness_night": {
+        "name": "Night Brightness"
       }
     },
     "switch": {
       "night_mode": {
         "name": "Night Brightness Mode"
       },
+      "night_mode_touch": {
+        "name": "Night Mode"
+      },
       "display": {
         "name": "Display"
       },
       "map": {
         "name": "Map"
+      },
+      "sound_enabled": {
+        "name": "Sound"
       }
     },
     "sensor": {
       "home_district": {
         "name": "Home District"
+      },
+      "battery_percent": {
+        "name": "Battery"
+      },
+      "battery_voltage_mv": {
+        "name": "Battery Voltage"
+      },
+      "battery_runtime_hours": {
+        "name": "Battery Runtime"
       },
       "used_memory": {
         "name": "Used Memory"

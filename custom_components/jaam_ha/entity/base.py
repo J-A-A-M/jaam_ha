@@ -13,7 +13,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from custom_components.jaam_ha.const import ATTRIBUTION, CONF_HOST, LOGGER
+from custom_components.jaam_ha.const import (
+    ATTRIBUTION,
+    CONF_DEVICE_TYPE,
+    CONF_HOST,
+    DEFAULT_DEVICE_TYPE,
+    DEVICE_TYPE_LABELS,
+    DEVICE_TYPE_TOUCH,
+    LOGGER,
+)
 from custom_components.jaam_ha.coordinator import JaamHADataUpdateCoordinator
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -118,19 +126,27 @@ class JaamHAEntity(CoordinatorEntity[JaamHADataUpdateCoordinator]):
         chip_id = self.coordinator.data.get("chip_id") if self.coordinator.data else None
         device_identifier = chip_id or self.coordinator.config_entry.entry_id
 
-        # Get device name
-        if chip_id:
+        # Device name: the name set on the device itself (same for Fusion and Touch),
+        # falling back to the chip id, then to the entry title.
+        custom_name = self.coordinator.data.get("device_name") if self.coordinator.data else None
+        if custom_name:
+            device_name = custom_name
+        elif chip_id:
             device_name = f"JAAM {chip_id}"
         else:
             device_name = self.coordinator.config_entry.title
 
-        # Get model name and firmware version from current data
-        model_name = self.coordinator.data.get("device_name") if self.coordinator.data else None
+        # "model" is the explicit Fusion/Touch label. The device's own custom name is shown
+        # in the hub title (coordinator sync_entry_title) - not in model_id, which HA renders
+        # as "model (model_id)" and which duplicated the name there.
+        device_type = self.coordinator.config_entry.data.get(CONF_DEVICE_TYPE, DEFAULT_DEVICE_TYPE)
+        model_name = DEVICE_TYPE_LABELS.get(device_type, DEVICE_TYPE_LABELS[DEFAULT_DEVICE_TYPE])
         fw_version = self.coordinator.data.get("fw_version") if self.coordinator.data else None
 
-        # Build configuration URL from config entry
+        # Build configuration URL from config entry. jaam_touch has no web interface, so it
+        # gets none (otherwise the device page shows a "Visit" link to a dead page).
         host = self.coordinator.config_entry.data.get(CONF_HOST)
-        config_url = f"http://{host}" if host else None
+        config_url = f"http://{host}" if host and device_type != DEVICE_TYPE_TOUCH else None
 
         return DeviceInfo(
             identifiers={

@@ -4,7 +4,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from custom_components.jaam_ha.const import PARALLEL_UPDATES as PARALLEL_UPDATES
+from custom_components.jaam_ha.const import (
+    CONF_DEVICE_TYPE,
+    DEFAULT_DEVICE_TYPE,
+    DEVICE_TYPE_FUSION,
+    PARALLEL_UPDATES as PARALLEL_UPDATES,
+)
 from custom_components.jaam_ha.entity import async_setup_dynamic_entities
 from homeassistant.components.sensor import SensorEntityDescription
 
@@ -13,6 +18,7 @@ from .home_district import ENTITY_DESCRIPTIONS as HOME_DISTRICT_DESCRIPTIONS, Ja
 from .home_district_temp import ENTITY_DESCRIPTIONS as HOME_DISTRICT_TEMP_DESCRIPTIONS, JaamHAHomeDistrictTempSensor
 from .light_level import ENTITY_DESCRIPTIONS as LIGHT_LEVEL_DESCRIPTIONS, JaamHALightLevelSensor
 from .system_info import ENTITY_DESCRIPTIONS as SYSTEM_INFO_DESCRIPTIONS, JaamHASystemInfoSensor
+from .touch_status import ENTITY_DESCRIPTIONS as TOUCH_STATUS_DESCRIPTIONS, JaamHATouchStatusSensor
 
 if TYPE_CHECKING:
     from custom_components.jaam_ha.data import JaamHAConfigEntry
@@ -27,6 +33,7 @@ ENTITY_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
     *SYSTEM_INFO_DESCRIPTIONS,
     *HOME_CLIMATE_DESCRIPTIONS,
     *LIGHT_LEVEL_DESCRIPTIONS,
+    *TOUCH_STATUS_DESCRIPTIONS,
 )
 
 # Dynamic sensor descriptions that should be created/removed based on hardware support
@@ -84,8 +91,13 @@ async def async_setup_entry(
 ) -> None:
     """Set up the sensor platform."""
     coordinator = entry.runtime_data.coordinator
+    is_fusion = entry.data.get(CONF_DEVICE_TYPE, DEFAULT_DEVICE_TYPE) == DEVICE_TYPE_FUSION
 
-    # Add always-available sensors (home district, system info)
+    # home_district reads the shared "home_region" field/DISTRICTS table both device types
+    # report identically, so it stays unconditional. home_district_temp and system_info are
+    # reported by both device types (jaam_touch under the same names and units); jaam_touch
+    # additionally has its own battery/wifi sensors, which already include wifi_signal, so
+    # that one system_info sensor is skipped there (same key would mean the same unique_id).
     async_add_entities(
         JaamHAHomeDistrictSensor(
             coordinator=coordinator,
@@ -106,7 +118,16 @@ async def async_setup_entry(
             entity_description=entity_description,
         )
         for entity_description in SYSTEM_INFO_DESCRIPTIONS
+        if is_fusion or entity_description.key != "wifi_signal"
     )
+    if not is_fusion:
+        async_add_entities(
+            JaamHATouchStatusSensor(
+                coordinator=coordinator,
+                entity_description=entity_description,
+            )
+            for entity_description in TOUCH_STATUS_DESCRIPTIONS
+        )
 
     async_setup_dynamic_entities(
         hass,

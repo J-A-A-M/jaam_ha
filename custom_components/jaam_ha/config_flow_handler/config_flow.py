@@ -22,7 +22,17 @@ from custom_components.jaam_ha.config_flow_handler.schemas import (
     get_zeroconf_confirm_schema,
 )
 from custom_components.jaam_ha.config_flow_handler.validators import sanitize_host, validate_connection
-from custom_components.jaam_ha.const import CONF_HOST, CONF_PORT, DEFAULT_PORT, DOMAIN, LOGGER
+from custom_components.jaam_ha.const import (
+    CONF_DEVICE_TYPE,
+    CONF_HOST,
+    CONF_PORT,
+    DEFAULT_DEVICE_TYPE,
+    DEFAULT_PORT,
+    DOMAIN,
+    LOGGER,
+    ZEROCONF_TYPE_TO_DEVICE_TYPE,
+)
+from custom_components.jaam_ha.utils import build_display_name
 from homeassistant import config_entries
 from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 
@@ -59,6 +69,7 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self._discovered_host: str | None = None
         self._discovered_port: int | None = None
         self._discovered_chip_id: str | None = None
+        self._discovered_device_type: str = DEFAULT_DEVICE_TYPE
 
     async def async_step_user(
         self,
@@ -89,22 +100,30 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 user_input[CONF_PORT] = int(user_input[CONF_PORT])
 
             try:
-                chip_id = await validate_connection(
+                connection_info = await validate_connection(
                     self.hass,
                     host=user_input[CONF_HOST],
                     port=user_input[CONF_PORT],
                 )
-                LOGGER.debug("Connection validated, chip_id: %s", chip_id)
+                LOGGER.debug(
+                    "Connection validated, chip_id: %s, device_type: %s",
+                    connection_info.chip_id,
+                    connection_info.device_type,
+                )
             except Exception as exception:  # noqa: BLE001
                 LOGGER.error("Connection validation failed: %s", exception)
                 errors["base"] = self._map_exception_to_error(exception)
             else:
                 # Set unique ID based on device chip_id
-                await self.async_set_unique_id(chip_id)
+                await self.async_set_unique_id(connection_info.chip_id)
                 self._abort_if_unique_id_configured()
 
-                # Use discovered device name if available (from zeroconf), otherwise chip_id
-                title = self._discovered_device_name or f"JAAM {chip_id}"
+                # Use discovered device name if available (from zeroconf), otherwise build
+                # one from this connection's own device_type + chip_id.
+                title = self._discovered_device_name or build_display_name(
+                    connection_info.device_type, None, connection_info.chip_id
+                )
+                user_input[CONF_DEVICE_TYPE] = connection_info.device_type
 
                 return self.async_create_entry(
                     title=title,
@@ -136,6 +155,7 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         """
         host = discovery_info.host
         port = discovery_info.port or DEFAULT_PORT
+        device_type = ZEROCONF_TYPE_TO_DEVICE_TYPE.get(discovery_info.type, DEFAULT_DEVICE_TYPE)
 
         # Extract chip_id, version, and device_name from TXT metadata
         # properties may contain bytes or str, handle both cases
@@ -157,10 +177,11 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_abort(reason="cannot_connect")
 
         LOGGER.info(
-            "Discovered JAAM device via zeroconf: %s (chip_id: %s, version: %s) at %s:%s",
+            "Discovered JAAM device via zeroconf: %s (chip_id: %s, version: %s, type: %s) at %s:%s",
             device_name or chip_id,
             chip_id,
             version,
+            device_type,
             host,
             port,
         )
@@ -173,18 +194,23 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         for entry in self._async_current_entries():
             if entry.unique_id == str(chip_id):
                 # Device already configured - check if connection details changed
-                if entry.data.get(CONF_HOST) != host or entry.data.get(CONF_PORT) != port:
+                if (
+                    entry.data.get(CONF_HOST) != host
+                    or entry.data.get(CONF_PORT) != port
+                    or entry.data.get(CONF_DEVICE_TYPE, DEFAULT_DEVICE_TYPE) != device_type
+                ):
                     LOGGER.info(
-                        "Zeroconf detected device %s at new address: %s:%s -> %s:%s, reloading entry",
+                        "Zeroconf detected device %s at new address/type: %s:%s -> %s:%s (%s), reloading entry",
                         chip_id,
                         entry.data.get(CONF_HOST),
                         entry.data.get(CONF_PORT),
                         host,
                         port,
+                        device_type,
                     )
                     self.hass.config_entries.async_update_entry(
                         entry,
-                        data={**entry.data, CONF_HOST: host, CONF_PORT: port},
+                        data={**entry.data, CONF_HOST: host, CONF_PORT: port, CONF_DEVICE_TYPE: device_type},
                     )
                     # Reload entry to reconnect with new address
                     self.hass.async_create_task(self.hass.config_entries.async_reload(entry.entry_id))
@@ -196,9 +222,10 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
                 return self.async_abort(reason="already_configured")
 
-        # Store discovery info for confirmation step
-        # Use device_name from TXT if available, otherwise fallback to chip_id
-        display_name = device_name or f"JAAM {chip_id}"
+        # Store discovery info for confirmation step - always prefixed with the explicit
+        # Fusion/Touch label (see build_display_name), not just the device's own name/chip_id,
+        # so the discovery card itself says which device type this is before it's even added.
+        display_name = build_display_name(device_type, device_name, str(chip_id))
         self.context["title_placeholders"] = {
             "name": display_name,
         }
@@ -208,6 +235,7 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self._discovered_host = host
         self._discovered_port = port
         self._discovered_chip_id = str(chip_id)
+        self._discovered_device_type = device_type
 
         # Show confirmation form instead of automatically creating entry
         return await self.async_step_zeroconf_confirm()
@@ -236,6 +264,7 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 data={
                     CONF_HOST: self._discovered_host,
                     CONF_PORT: self._discovered_port,
+                    CONF_DEVICE_TYPE: self._discovered_device_type,
                 },
             )
 
@@ -279,7 +308,7 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 user_input[CONF_PORT] = int(user_input[CONF_PORT])
 
             try:
-                await validate_connection(
+                connection_info = await validate_connection(
                     self.hass,
                     host=user_input[CONF_HOST],
                     port=user_input[CONF_PORT],
@@ -287,9 +316,11 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             except Exception as exception:  # noqa: BLE001
                 errors["base"] = self._map_exception_to_error(exception)
             else:
+                # Merge into the existing data - replacing it would drop CONF_DEVICE_TYPE
+                # and turn a jaam_touch entry into a Fusion one on reload.
                 return self.async_update_reload_and_abort(
                     entry,
-                    data=user_input,
+                    data={**entry.data, **user_input, CONF_DEVICE_TYPE: connection_info.device_type},
                 )
 
         return self.async_show_form(

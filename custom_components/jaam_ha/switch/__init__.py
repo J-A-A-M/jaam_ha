@@ -11,6 +11,7 @@ from homeassistant.components.switch import SwitchEntityDescription
 from .display import ENTITY_DESCRIPTIONS as DISPLAY_DESCRIPTIONS, JaamHADisplaySwitch
 from .map import ENTITY_DESCRIPTIONS as MAP_DESCRIPTIONS, JaamHAMapSwitch
 from .night_mode import ENTITY_DESCRIPTIONS as NIGHT_MODE_DESCRIPTIONS, JaamHANightModeSwitch
+from .sound import ENTITY_DESCRIPTIONS as SOUND_DESCRIPTIONS, JaamHASoundSwitch
 
 if TYPE_CHECKING:
     from custom_components.jaam_ha.data import JaamHAConfigEntry
@@ -23,13 +24,20 @@ ENTITY_DESCRIPTIONS: tuple[SwitchEntityDescription, ...] = (
     *NIGHT_MODE_DESCRIPTIONS,
     *DISPLAY_DESCRIPTIONS,
     *MAP_DESCRIPTIONS,
+    *SOUND_DESCRIPTIONS,
 )
 
-# Dynamic switch descriptions that should be created/removed based on hardware support
+# Dynamic switch descriptions that should be created/removed based on hardware support.
+# night_mode is the one key both device types report identically (see jaam_touch's
+# TouchApi.cpp alignment comment) - sound is jaam_touch-only, map/display jaam_fusion-only;
+# all three are gated the same way, by whether their SUPPORTED_SWITCH_MAPPING name is in
+# the connected device's own supported_sensors list, so no device_type branching is needed
+# here at all.
 DYNAMIC_SWITCH_DESCRIPTIONS = {
     **{desc.key: (desc, JaamHANightModeSwitch) for desc in NIGHT_MODE_DESCRIPTIONS},
     **{desc.key: (desc, JaamHADisplaySwitch) for desc in DISPLAY_DESCRIPTIONS},
     **{desc.key: (desc, JaamHAMapSwitch) for desc in MAP_DESCRIPTIONS},
+    **{desc.key: (desc, JaamHASoundSwitch) for desc in SOUND_DESCRIPTIONS},
 }
 
 

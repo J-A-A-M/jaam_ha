@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 import aiohttp
 
-from custom_components.jaam_ha.const import LOGGER
+from custom_components.jaam_ha.const import CONF_DEVICE_TYPE, DEFAULT_DEVICE_TYPE, DEVICE_TYPE_TOUCH, LOGGER
 from custom_components.jaam_ha.entity import JaamHAEntity
 from homeassistant.components.update import (
     UpdateDeviceClass,
@@ -25,6 +25,8 @@ if TYPE_CHECKING:
 # GitHub repository URL for firmware releases
 FIRMWARE_REPO_URL = "https://github.com/J-A-A-M/jaam_fusion"
 GITHUB_API_URL = "https://api.github.com/repos/J-A-A-M/jaam_fusion"
+TOUCH_FIRMWARE_REPO_URL = "https://github.com/J-A-A-M/jaam_touch"
+TOUCH_GITHUB_API_URL = "https://api.github.com/repos/J-A-A-M/jaam_touch"
 
 # Regex pattern for parsing version strings (e.g., 5.0, 5.0.1, 5.0-b32, 5.0.1-b32, 5.0-b32-s3, 5.0.2-c3)
 # Chip type suffixes (c3, s3, etc.) are matched but ignored during version comparison
@@ -144,6 +146,19 @@ class JaamHAFirmwareUpdate(UpdateEntity, JaamHAEntity):
         super()._handle_coordinator_update()
 
     @property
+    def _is_touch(self) -> bool:
+        """Return True for a jaam_touch device (its releases live in a different repo)."""
+        return self.coordinator.config_entry.data.get(CONF_DEVICE_TYPE, DEFAULT_DEVICE_TYPE) == DEVICE_TYPE_TOUCH
+
+    @property
+    def _repo_url(self) -> str:
+        return TOUCH_FIRMWARE_REPO_URL if self._is_touch else FIRMWARE_REPO_URL
+
+    @property
+    def _api_url(self) -> str:
+        return TOUCH_GITHUB_API_URL if self._is_touch else GITHUB_API_URL
+
+    @property
     def installed_version(self) -> str | None:
         """Return the installed firmware version."""
         if self.coordinator.data is None:
@@ -246,10 +261,10 @@ class JaamHAFirmwareUpdate(UpdateEntity, JaamHAEntity):
             # Strip chip suffix (e.g., -c3, -s3) before constructing GitHub URL
             # GitHub releases use version without chip suffix (e.g., 5.0.1, 5.0.1-b32)
             base_version = strip_chip_suffix(version)
-            return f"{FIRMWARE_REPO_URL}/releases/tag/{base_version}"
+            return f"{self._repo_url}/releases/tag/{base_version}"
 
         # Fallback to releases page if no version available
-        return f"{FIRMWARE_REPO_URL}/releases"
+        return f"{self._repo_url}/releases"
 
     async def async_release_notes(self) -> str | None:
         """Return the release notes.
@@ -273,7 +288,7 @@ class JaamHAFirmwareUpdate(UpdateEntity, JaamHAEntity):
         # Fetch release notes from GitHub
         try:
             session = async_get_clientsession(self.hass)
-            url = f"{GITHUB_API_URL}/releases/tags/{base_version}"
+            url = f"{self._api_url}/releases/tags/{base_version}"
 
             async with asyncio.timeout(10):
                 async with session.get(

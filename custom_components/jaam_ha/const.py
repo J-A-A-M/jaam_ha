@@ -14,7 +14,38 @@ PARALLEL_UPDATES = 1
 # Configuration keys
 CONF_HOST = "host"
 CONF_PORT = "port"
+CONF_DEVICE_TYPE = "device_type"
 DEFAULT_PORT = 81
+
+# Device types - which firmware/protocol family a config entry talks to. Both speak the
+# same JSON-over-WebSocket envelope (see JaamHAApiClient), but expose different command
+# sets and entities: DEVICE_TYPE_FUSION is the original jaam_fusion LED-strip protocol
+# this integration was written against, DEVICE_TYPE_TOUCH is jaam_touch's local WS API
+# (TouchApi.cpp), added later and reusing this protocol only where the underlying concept
+# is identical (e.g. night_mode). Existing config entries from before this distinction
+# existed have no device_type key at all - DEFAULT_DEVICE_TYPE is what they fall back to,
+# and must stay "fusion" (every entry created before jaam_touch support existed talks to
+# a fusion device).
+DEVICE_TYPE_FUSION = "fusion"
+DEVICE_TYPE_TOUCH = "touch"
+DEFAULT_DEVICE_TYPE = DEVICE_TYPE_FUSION
+
+# Human-readable device type label - shown in the discovery confirmation dialog (config
+# flow) and as the device page's "model" (entity/base.py), so it's obvious at a glance
+# which firmware/protocol family a given JAAM device is, without having to open its
+# entities to guess from which ones exist.
+DEVICE_TYPE_LABELS: dict[str, str] = {
+    DEVICE_TYPE_FUSION: "JAAM Fusion",
+    DEVICE_TYPE_TOUCH: "JAAM Touch",
+}
+
+# Zeroconf service type (manifest.json's "zeroconf" list) -> device_type. Keeps the config
+# flow from needing a WS round trip just to tell the two device types apart at discovery
+# time - the service name itself already says which one matched.
+ZEROCONF_TYPE_TO_DEVICE_TYPE: dict[str, str] = {
+    "_jaam-ws._tcp.local.": DEVICE_TYPE_FUSION,
+    "_jaam-touch-ws._tcp.local.": DEVICE_TYPE_TOUCH,
+}
 
 # Map mode IDs
 MAP_MODE_DISABLED = 0
@@ -89,4 +120,10 @@ SUPPORTED_SWITCH_MAPPING: dict[str, str] = {
     "night_mode": "night_mode",
     "map": "map",
     "display": "display",
+    "sound": "sound_enabled",
 }
+
+# jaam_touch's single "mode" select options, in TouchApi.cpp's modeToString() order -
+# unlike jaam_fusion's map_mode/display_mode, this is one flat enum with no separate
+# id mapping (the wire value IS the option string).
+TOUCH_MODE_ORDER: list[str] = ["alarm_map", "weather", "radiation", "energy"]

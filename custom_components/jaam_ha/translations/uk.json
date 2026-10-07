@@ -95,6 +95,17 @@
       },
       "websocket_status": {
         "name": "Статус WebSocket"
+      },
+      "battery_charging": {
+        "name": "Заряджання батареї"
+      },
+      "battery_external_power": {
+        "name": "Зовнішнє живлення"
+      }
+    },
+    "button": {
+      "reboot": {
+        "name": "Перезавантажити"
       }
     },
     "event": {
@@ -145,22 +156,60 @@
           "microclimate": "Мікроклімат",
           "combined": "Комбінований"
         }
+      },
+      "mode": {
+        "name": "Режим",
+        "state": {
+          "alarm_map": "Карта тривог",
+          "weather": "Погода",
+          "radiation": "Радіація",
+          "energy": "Енергосистема"
+        }
+      }
+    },
+    "number": {
+      "sound_volume_day": {
+        "name": "Денна гучність звуку"
+      },
+      "sound_volume_night": {
+        "name": "Нічна гучність звуку"
+      },
+      "brightness_day": {
+        "name": "Денна яскравість"
+      },
+      "brightness_night": {
+        "name": "Нічна яскравість"
       }
     },
     "switch": {
       "night_mode": {
         "name": "Режим нічної яскравості"
       },
+      "night_mode_touch": {
+        "name": "Нічний режим"
+      },
       "display": {
         "name": "Дисплей"
       },
       "map": {
         "name": "Мапа"
+      },
+      "sound_enabled": {
+        "name": "Звук"
       }
     },
     "sensor": {
       "home_district": {
         "name": "Домашній регіон"
+      },
+      "battery_percent": {
+        "name": "Батарея"
+      },
+      "battery_voltage_mv": {
+        "name": "Напруга батареї"
+      },
+      "battery_runtime_hours": {
+        "name": "Час роботи від батареї"
       },
       "used_memory": {
         "name": "Використано пам'яті"

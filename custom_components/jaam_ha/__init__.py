@@ -39,8 +39,10 @@ if TYPE_CHECKING:
 
 PLATFORMS: list[Platform] = [
     Platform.BINARY_SENSOR,
+    Platform.BUTTON,
     Platform.EVENT,
     Platform.LIGHT,
+    Platform.NUMBER,
     Platform.SELECT,
     Platform.SENSOR,
     Platform.SWITCH,
@@ -140,6 +142,15 @@ async def async_setup_entry(
     await coordinator.async_config_entry_first_refresh()
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    # The device page title follows the name set on the device (device_info is only read when
+    # an entity is added, so push it for entries whose device is already registered).
+    first_data = coordinator.data or {}
+    if first_data.get("device_name"):
+        coordinator.update_device_name(first_data["device_name"], first_data.get("chip_id"))
+
+    # A title-only update (hub renamed after a rename on the device) must not reload the entry
+    coordinator.config_snapshot = (dict(entry.data), dict(entry.options))
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
 
     return True
@@ -191,4 +202,6 @@ async def async_reload_entry(
     For more information:
     https://developers.home-assistant.io/docs/config_entries_index/#reloading-entries
     """
+    if entry.runtime_data.coordinator.config_snapshot == (dict(entry.data), dict(entry.options)):
+        return
     await hass.config_entries.async_reload(entry.entry_id)
