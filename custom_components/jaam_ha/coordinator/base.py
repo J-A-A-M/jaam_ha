@@ -20,7 +20,7 @@ from zeroconf import ServiceStateChange
 from zeroconf.asyncio import AsyncServiceBrowser, AsyncServiceInfo
 
 from custom_components.jaam_ha.api import JaamHAApiClientAuthenticationError, JaamHAApiClientError, JaamHADeviceData
-from custom_components.jaam_ha.const import CONF_DEVICE_TYPE, DEFAULT_DEVICE_TYPE, LOGGER
+from custom_components.jaam_ha.const import CONF_DEVICE_TYPE, DEFAULT_DEVICE_TYPE, LOGGER, ZEROCONF_TYPE_TO_DEVICE_TYPE
 from custom_components.jaam_ha.utils import build_display_name
 from homeassistant.components import zeroconf
 from homeassistant.exceptions import ConfigEntryAuthFailed
@@ -58,6 +58,7 @@ class JaamHADataUpdateCoordinator(DataUpdateCoordinator[JaamHADeviceData]):
     _unavailable_timer_task: asyncio.Task | None = None
     _zeroconf_browser: AsyncServiceBrowser | None = None
     _zeroconf_setup_done: bool = False
+    config_snapshot: tuple[dict, dict] = ({}, {})
 
     async def _async_setup(self) -> None:
         """
@@ -134,10 +135,13 @@ class JaamHADataUpdateCoordinator(DataUpdateCoordinator[JaamHADeviceData]):
             # Use cached value from previous update (not self.data which might be the same object as data)
             old_name = getattr(self, "_cached_device_name", None)
 
-            # Keep the hub (config entry) title in step with the device's own name
+            # Keep the hub (config entry) title in step with the device's own name - but only
+            # while the title is still the auto-generated one for the previous name; a title
+            # the user set themselves stays.
             if new_name and old_name != new_name:
                 LOGGER.info("Device name changed from '%s' to '%s'", old_name, new_name)
-                self.sync_entry_title(new_name, data.get("chip_id"))
+                if old_name is not None:
+                    self.sync_entry_title(new_name, data.get("chip_id"), old_name)
                 self.update_device_name(new_name, data.get("chip_id"))
 
             # Cache new value for next comparison
@@ -214,22 +218,23 @@ class JaamHADataUpdateCoordinator(DataUpdateCoordinator[JaamHADeviceData]):
         except asyncio.CancelledError:
             LOGGER.debug("Unavailable timer cancelled - connection restored")
 
-    def sync_entry_title(self, device_name: str | None, chip_id: str | None) -> None:
+    def sync_entry_title(self, device_name: str, chip_id: str | None, old_name: str) -> None:
         """
-        Set the hub (config entry) title to "<Fusion/Touch label> (<device name>)".
+        Follow a rename on the device in the hub (config entry) title.
 
-        The title is otherwise only set once, at creation - without this a rename on the
-        device, or an entry created before the type label existed, keeps a stale title.
-        The device page's "model" is deliberately NOT touched here (it used to be
-        overwritten with the device name, which both hid the Fusion/Touch label and, next
-        to model_id, rendered as "<name> (<name>)").
+        The title is set once, at creation, as "<Fusion/Touch label> (<device name>)".
+        It is only renamed while it still equals the auto-generated title for the previous
+        name - a title the user changed themselves is left alone.
 
         Args:
-            device_name: The device's current own name.
+            device_name: The device's new own name.
             chip_id: The device's chip id, used when the name is empty.
+            old_name: The device's previous name.
 
         """
         device_type = self.config_entry.data.get(CONF_DEVICE_TYPE, DEFAULT_DEVICE_TYPE)
+        if self.config_entry.title != build_display_name(device_type, old_name, chip_id or ""):
+            return
         title = build_display_name(device_type, device_name, chip_id or "")
         if title != self.config_entry.title:
             self.hass.config_entries.async_update_entry(self.config_entry, title=title)
@@ -353,7 +358,7 @@ class JaamHADataUpdateCoordinator(DataUpdateCoordinator[JaamHADeviceData]):
         # Create service browser
         self._zeroconf_browser = AsyncServiceBrowser(
             aiozc.zeroconf,
-            "_jaam-ws._tcp.local.",
+            list(ZEROCONF_TYPE_TO_DEVICE_TYPE),
             handlers=[zeroconf_service_update],
         )
 

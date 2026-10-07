@@ -194,18 +194,23 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         for entry in self._async_current_entries():
             if entry.unique_id == str(chip_id):
                 # Device already configured - check if connection details changed
-                if entry.data.get(CONF_HOST) != host or entry.data.get(CONF_PORT) != port:
+                if (
+                    entry.data.get(CONF_HOST) != host
+                    or entry.data.get(CONF_PORT) != port
+                    or entry.data.get(CONF_DEVICE_TYPE, DEFAULT_DEVICE_TYPE) != device_type
+                ):
                     LOGGER.info(
-                        "Zeroconf detected device %s at new address: %s:%s -> %s:%s, reloading entry",
+                        "Zeroconf detected device %s at new address/type: %s:%s -> %s:%s (%s), reloading entry",
                         chip_id,
                         entry.data.get(CONF_HOST),
                         entry.data.get(CONF_PORT),
                         host,
                         port,
+                        device_type,
                     )
                     self.hass.config_entries.async_update_entry(
                         entry,
-                        data={**entry.data, CONF_HOST: host, CONF_PORT: port},
+                        data={**entry.data, CONF_HOST: host, CONF_PORT: port, CONF_DEVICE_TYPE: device_type},
                     )
                     # Reload entry to reconnect with new address
                     self.hass.async_create_task(self.hass.config_entries.async_reload(entry.entry_id))
@@ -303,7 +308,7 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 user_input[CONF_PORT] = int(user_input[CONF_PORT])
 
             try:
-                await validate_connection(
+                connection_info = await validate_connection(
                     self.hass,
                     host=user_input[CONF_HOST],
                     port=user_input[CONF_PORT],
@@ -311,9 +316,11 @@ class JaamHAConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             except Exception as exception:  # noqa: BLE001
                 errors["base"] = self._map_exception_to_error(exception)
             else:
+                # Merge into the existing data - replacing it would drop CONF_DEVICE_TYPE
+                # and turn a jaam_touch entry into a Fusion one on reload.
                 return self.async_update_reload_and_abort(
                     entry,
-                    data=user_input,
+                    data={**entry.data, **user_input, CONF_DEVICE_TYPE: connection_info.device_type},
                 )
 
         return self.async_show_form(

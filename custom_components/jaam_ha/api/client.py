@@ -67,6 +67,10 @@ TOUCH_PASSTHROUGH_KEYS = (
 )
 
 
+# Keys of TOUCH_PASSTHROUGH_KEYS the device omits from telemetry when it has no value.
+TOUCH_OPTIONAL_KEYS = ("battery_runtime_hours",)
+
+
 def _wifi_uptime_seconds(data: dict[str, Any]) -> int | None:
     """WiFi uptime in seconds: jaam_fusion sends `wifi_uptime`, jaam_touch `wifi_uptime_ms`."""
     if data.get("wifi_uptime") is not None:
@@ -477,6 +481,10 @@ class JaamHAApiClient:
         if "light_level" in data:
             device_data["light_level"] = data["light_level"]
 
+        # jaam_fusion's initial_state has no device_type at all (callers default to fusion)
+        if data.get("device_type"):
+            device_data["device_type"] = data["device_type"]
+
         # jaam_touch fields, same presence rule as the sensors above
         for key in TOUCH_PASSTHROUGH_KEYS:
             if key in data:
@@ -661,6 +669,10 @@ class JaamHAApiClient:
                     for key in TOUCH_PASSTHROUGH_KEYS:
                         if key in data:
                             self._data[key] = data[key]
+                        elif key in TOUCH_OPTIONAL_KEYS:
+                            # Sent only while it has a value (e.g. runtime only on battery) -
+                            # absence means "no value now", not "unchanged".
+                            self._data[key] = None
                     if "wifi_signal" in data:
                         self._data["wifi_signal"] = data["wifi_signal"]
                     if (wifi_uptime := _wifi_uptime_seconds(data)) is not None:
