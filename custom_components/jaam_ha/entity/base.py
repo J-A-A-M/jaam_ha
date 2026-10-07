@@ -126,23 +126,21 @@ class JaamHAEntity(CoordinatorEntity[JaamHADataUpdateCoordinator]):
         chip_id = self.coordinator.data.get("chip_id") if self.coordinator.data else None
         device_identifier = chip_id or self.coordinator.config_entry.entry_id
 
-        # Get device name
-        if chip_id:
+        # Device name: the name set on the device itself (same for Fusion and Touch),
+        # falling back to the chip id, then to the entry title.
+        custom_name = self.coordinator.data.get("device_name") if self.coordinator.data else None
+        if custom_name:
+            device_name = custom_name
+        elif chip_id:
             device_name = f"JAAM {chip_id}"
         else:
             device_name = self.coordinator.config_entry.title
 
-        # "model" is the explicit Fusion/Touch label (not the device's own custom name) -
-        # so it's obvious at a glance which firmware/protocol family this device is without
-        # opening it to guess from which entities exist. The device's own custom name (e.g.
-        # jaam_fusion's user-set "device_name" setting) goes in model_id instead, so it's
-        # still visible but doesn't get confused with the type label; omitted entirely when
-        # it's identical to the type label (jaam_touch always reports "JAAM Touch" as its
-        # device_name, which would just be a redundant duplicate here).
+        # "model" is the explicit Fusion/Touch label. The device's own custom name is shown
+        # in the hub title (coordinator sync_entry_title) - not in model_id, which HA renders
+        # as "model (model_id)" and which duplicated the name there.
         device_type = self.coordinator.config_entry.data.get(CONF_DEVICE_TYPE, DEFAULT_DEVICE_TYPE)
         model_name = DEVICE_TYPE_LABELS.get(device_type, DEVICE_TYPE_LABELS[DEFAULT_DEVICE_TYPE])
-        custom_name = self.coordinator.data.get("device_name") if self.coordinator.data else None
-        model_id = custom_name if custom_name and custom_name != model_name else None
         fw_version = self.coordinator.data.get("fw_version") if self.coordinator.data else None
 
         # Build configuration URL from config entry. jaam_touch has no web interface, so it
@@ -160,7 +158,6 @@ class JaamHAEntity(CoordinatorEntity[JaamHADataUpdateCoordinator]):
             name=device_name,
             manufacturer="JAAM",
             model=model_name,
-            model_id=model_id,
             serial_number=device_identifier,
             sw_version=fw_version or "Unknown",
             configuration_url=config_url,

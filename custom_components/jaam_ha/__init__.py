@@ -153,6 +153,20 @@ async def async_setup_entry(
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
+    # Earlier versions stored the device's own name as model_id, which HA renders as
+    # "model (model_id)" - a duplicate next to the name. Entities no longer send it, but the
+    # registry ignores a missing value, so clear the stored one explicitly. Same for the hub
+    # title: sync it to the "<Fusion/Touch> (<name>)" form once the first data is in.
+    device_registry = dr.async_get(hass)
+    for device in dr.async_entries_for_config_entry(device_registry, entry.entry_id):
+        if device.model_id is not None:
+            device_registry.async_update_device(device.id, model_id=None)
+    first_data = coordinator.data or {}
+    if first_data.get("device_name") or first_data.get("chip_id"):
+        coordinator.sync_entry_title(first_data.get("device_name"), first_data.get("chip_id"))
+        if first_data.get("device_name"):
+            coordinator.update_device_name(first_data["device_name"], first_data.get("chip_id"))
+
     # jaam_touch has no web interface, so its device page must not show a "Visit" link.
     # Entities never send a configuration_url for it (see entity/base.py), but the device
     # registry ignores a missing/None value, so a URL stored by an earlier version stays
