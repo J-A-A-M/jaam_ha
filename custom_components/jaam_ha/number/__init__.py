@@ -17,8 +17,7 @@ from custom_components.jaam_ha.const import (
 )
 from homeassistant.components.number import NumberEntityDescription
 
-from .brightness_day import ENTITY_DESCRIPTIONS as BRIGHTNESS_DAY_DESCRIPTIONS, JaamHABrightnessDayNumber
-from .brightness_night import ENTITY_DESCRIPTIONS as BRIGHTNESS_NIGHT_DESCRIPTIONS, JaamHABrightnessNightNumber
+from .brightness import ENTITY_DESCRIPTIONS as BRIGHTNESS_DESCRIPTIONS, JaamHABrightnessNumber
 from .sound_volume import ENTITY_DESCRIPTIONS as SOUND_VOLUME_DESCRIPTIONS, JaamHASoundVolumeNumber
 
 if TYPE_CHECKING:
@@ -28,8 +27,7 @@ if TYPE_CHECKING:
 
 # Combine all entity descriptions from different modules
 ENTITY_DESCRIPTIONS: tuple[NumberEntityDescription, ...] = (
-    *BRIGHTNESS_DAY_DESCRIPTIONS,
-    *BRIGHTNESS_NIGHT_DESCRIPTIONS,
+    *BRIGHTNESS_DESCRIPTIONS,
     *SOUND_VOLUME_DESCRIPTIONS,
 )
 
@@ -45,12 +43,8 @@ async def async_setup_entry(
 
     coordinator = entry.runtime_data.coordinator
     async_add_entities(
-        JaamHABrightnessDayNumber(coordinator=coordinator, entity_description=entity_description)
-        for entity_description in BRIGHTNESS_DAY_DESCRIPTIONS
-    )
-    async_add_entities(
-        JaamHABrightnessNightNumber(coordinator=coordinator, entity_description=entity_description)
-        for entity_description in BRIGHTNESS_NIGHT_DESCRIPTIONS
+        JaamHABrightnessNumber(coordinator=coordinator, entity_description=entity_description)
+        for entity_description in BRIGHTNESS_DESCRIPTIONS
     )
     async_add_entities(
         JaamHASoundVolumeNumber(coordinator=coordinator, entity_description=entity_description)

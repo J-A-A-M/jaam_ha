@@ -1,4 +1,4 @@
-"""jaam_touch night-range screen brightness number for jaam_ha."""
+"""jaam_touch screen brightness numbers (day and night range) for jaam_ha."""
 
 from __future__ import annotations
 
@@ -13,6 +13,16 @@ if TYPE_CHECKING:
 
 ENTITY_DESCRIPTIONS = (
     NumberEntityDescription(
+        key="brightness_day",
+        translation_key="brightness_day",
+        icon="mdi:brightness-6",
+        native_min_value=0,
+        native_max_value=100,
+        native_step=1,
+        mode=NumberMode.SLIDER,
+        has_entity_name=True,
+    ),
+    NumberEntityDescription(
         key="brightness_night",
         translation_key="brightness_night",
         icon="mdi:brightness-3",
@@ -25,8 +35,13 @@ ENTITY_DESCRIPTIONS = (
 )
 
 
-class JaamHABrightnessNightNumber(NumberEntity, JaamHAEntity):
-    """jaam_touch night-range brightness number entity - see brightness_day.py for the 0-255<->0-100% conversion reasoning."""
+class JaamHABrightnessNumber(NumberEntity, JaamHAEntity):
+    """jaam_touch brightness number entity.
+
+    One class for both keys: `brightness_day` and `brightness_night`. Exposed as 0-100%
+    (friendlier than the device's own 0-255 raw scale, same conversion jaam_ha's
+    light.lamp already applies to its brightness).
+    """
 
     def __init__(
         self,
@@ -48,5 +63,8 @@ class JaamHABrightnessNightNumber(NumberEntity, JaamHAEntity):
         """Set the brightness from a percentage."""
         level = round((value / 100) * 255)
         client = self.coordinator.config_entry.runtime_data.client
-        await client.async_set_brightness_night(level)
+        if self.entity_description.key == "brightness_night":
+            await client.async_set_brightness_night(level)
+        else:
+            await client.async_set_brightness_day(level)
         await self.coordinator.async_request_refresh()
