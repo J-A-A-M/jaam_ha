@@ -21,6 +21,7 @@ Uncomment and customize these badges if you want to use them:
 
 ## ✨ Features
 
+- **Two Device Types**: JAAM Fusion and JAAM Touch - the type is detected automatically and shown explicitly in the hub title and on the device page
 - **Easy Setup**: Simple configuration through the UI - no YAML required
 - **Automatic Discovery**: Zeroconf support for automatic device detection
 - **Real-time Monitoring**: WebSocket connection for instant updates
@@ -47,8 +48,10 @@ Uncomment and customize these badges if you want to use them:
 Platform | Description
 -- | --
 `binary_sensor` | WebSocket connection status and 13 alert type sensors
+`button` | Device reboot (JAAM Touch)
 `event` | Button press events (click/long_click) from physical buttons - hardware-dependent
 `light` | Lamp control with brightness and color
+`number` | Day/night brightness and volume - JAAM Touch
 `select` | Map mode and display mode selection (options dynamically filtered by device capabilities)
 `sensor` | Home district, district temperature, room climate (hardware-dependent), and system diagnostics
 `switch` | Device feature toggles (night mode, display, map) - hardware-dependent
@@ -95,7 +98,11 @@ If your JAAM device supports zeroconf, it will be **automatically discovered** b
 3. Click **"Configure"** on the notification
 4. Verify the host/port and click Submit
 
-> **Note:** Automatic discovery requires your device to broadcast the `_jaam-ws._tcp.local.` service on your network.
+> **Note:** Automatic discovery requires your device to broadcast the `_jaam-ws._tcp.local.` (JAAM Fusion) or `_jaam-touch-ws._tcp.local.` (JAAM Touch) service on your network.
+
+> **JAAM Touch:** the local API is **disabled** by default. Enable it on the device: **Menu → Network → HA API**. Only then does the device show up in Home Assistant; the tile next to it shows the HA connection status.
+
+The hub title is `JAAM Fusion (name)` or `JAAM Touch (name)`, where name is the name set on the device itself; the device page shows that name as the title and the type as the model. If the name already contains the type (e.g. `JAAM Touch`), it is not repeated.
 
 #### Option 1: One-Click Setup (Manual)
 
