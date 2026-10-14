@@ -37,11 +37,13 @@ class JaamHATouchModeSelect(SelectEntity, JaamHAEntity):
     def options(self) -> list[str]:
         """Return the list of available options.
 
-        All four modes are always supported by jaam_touch firmware - unlike
-        jaam_fusion's map_mode/display_mode, there's no hardware-dependent subset to
-        filter against.
+        Only the modes enabled in the device's menu; all of them if the firmware doesn't
+        report `enabled_modes` (older versions).
         """
-        return TOUCH_MODE_ORDER
+        enabled = self.coordinator.data.get("enabled_modes")
+        if enabled is None:
+            return TOUCH_MODE_ORDER
+        return [mode for mode in TOUCH_MODE_ORDER if mode in enabled]
 
     @property
     def current_option(self) -> str | None:
@@ -50,7 +52,7 @@ class JaamHATouchModeSelect(SelectEntity, JaamHAEntity):
 
     async def async_select_option(self, option: str) -> None:
         """Change the selected option."""
-        if option not in TOUCH_MODE_ORDER:
+        if option not in self.options:
             return
 
         client = self.coordinator.config_entry.runtime_data.client
