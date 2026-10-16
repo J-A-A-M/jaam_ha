@@ -47,6 +47,7 @@ type JaamHADeviceData = dict[str, Any]
 # both the initial_state message and the periodic "telemetry" one; absent for jaam_fusion.
 TOUCH_PASSTHROUGH_KEYS = (
     "mode",
+    "enabled_modes",
     "sound_enabled",
     "sound_volume_day",
     "sound_volume_night",
@@ -82,7 +83,7 @@ def _wifi_uptime_seconds(data: dict[str, Any]) -> int | None:
 
 # jaam_touch "<setting>_change" broadcasts: message type -> {message field: data key}.
 TOUCH_CHANGE_MESSAGES: dict[str, dict[str, str]] = {
-    "mode_change": {"mode": "mode"},
+    "mode_change": {"mode": "mode", "enabled_modes": "enabled_modes"},
     "sound_enabled_change": {"enabled": "sound_enabled"},
     "sound_volume_change": {
         "volume_day": "sound_volume_day",
